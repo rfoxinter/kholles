@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Recursive GitHub Repo Browser</title>
+</head>
+<body>
+  <h1>Recursive File Listing</h1>
+  <ul id="file-list"></ul>
+
+  <script>
+    const token = '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'; // Be cautious
+    const owner = 'rfoxinter';
+    const repo = 'kholles';
+
+    const headers = {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json'
+    };
+
+    const listContainer = document.getElementById('file-list');
+
+    async function fetchAndList(path = '', parentElement = listContainer) {
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const data = await res.json();
+
+        const ul = document.createElement('ul');
+        parentElement.appendChild(ul);
+
+        for (const item of data) {
+          const li = document.createElement('li');
+          const label = document.createElement('span');
+          label.textContent = `${item.type}: ${item.name} `;
+          li.appendChild(label);
+
+          if (item.type === 'file') {
+            const a = document.createElement('a');
+            a.href = item.download_url;
+            a.textContent = '[Download]';
+            a.setAttribute('download', item.name);
+            a.target = '_blank';
+            li.appendChild(a);
+          } else if (item.type === 'dir') {
+            await fetchAndList(item.path, li); // 🔁 Recursively list subdirectory
+          }
+
+          ul.appendChild(li);
+        }
+      } catch (err) {
+        console.error('Error loading path:', path, err);
+        const li = document.createElement('li');
+        li.textContent = `⚠️ Error loading ${path}: ${err.message}`;
+        parentElement.appendChild(li);
+      }
+    }
+
+    // Start from the root
+    fetchAndList();
+  </script>
+</body>
+</html>
