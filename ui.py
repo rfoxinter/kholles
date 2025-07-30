@@ -30,7 +30,9 @@ from superqt.utils import CodeSyntaxHighlight
 from database import database_exercices
 from exercises import get_exercises
 from latex import gen_book, generate_exercise_sheet
+from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
+
 
 
 class ExerciseManager(QWidget):
@@ -160,7 +162,7 @@ class ExerciseManager(QWidget):
         exercise_input.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         exercise_input.setPlaceholderText('Exercice')
         exercise_input.setStyleSheet("font-family: 'Ubuntu Mono'; font-size: 14px;  background-color: #121212;")
-        self.e_highlighter = CodeSyntaxHighlight(exercise_input.document(), "latex", "monokai++")
+        self.e_highlighter = CodeSyntaxHighlight(exercise_input.document(), "latex", MonokaiPlusPlusStyle)
         layout.addWidget(exercise_input)
         
         # Answer
@@ -170,7 +172,7 @@ class ExerciseManager(QWidget):
         answer_input.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         answer_input.setPlaceholderText('Réponse')
         answer_input.setStyleSheet("font-family: 'Ubuntu Mono'; font-size: 14px;  background-color: #121212;")
-        self.a_highlighter = CodeSyntaxHighlight(answer_input.document(), "latex", "monokai++")
+        self.a_highlighter = CodeSyntaxHighlight(answer_input.document(), "latex", MonokaiPlusPlusStyle)
         layout.addWidget(answer_input)
 
         

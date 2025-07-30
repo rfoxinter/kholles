@@ -12,8 +12,8 @@ A recent release of [PDF.js](https://github.com/mozilla/pdf.js) needs to be unzi
 Run `__init__.py` to launch the exercise manager.  
 The console contains the error messages as well as the LaTeX output when documents are compiled.  
 The app needs to be closed via the main window and not via the console for the database to be saved.
-## Licenses
-This product includes or requires software developed by third parties. The licenses for these components are listed below.
+## Licences
+This product includes or requires software developed by third parties. The licences for these components are listed below.
 - [Python 3](https://www.python.org/) – licensed under the [Python Software Foundation License](https://docs.python.org/3/license.html)
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) – licensed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
 - [PyQt6-WebEngine](https://www.riverbankcomputing.com/software/pyqtwebengine/) – licensed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)

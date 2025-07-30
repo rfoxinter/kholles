@@ -10,9 +10,13 @@ class database_exercices():
     def __init__(self) -> None:
         # self.db = connect("exercices.db")
         self.db = connect(":memory:")
-        self.db.deserialize(zipdb.uncompress())
+        uncompress, exists = zipdb.uncompress()
+        if exists:
+            self.db.deserialize(uncompress)
         self.bkp = connect(":memory:")
-        self.bkp.deserialize(zipdb.uncompress())
+        uncompress, exists = zipdb.uncompress()
+        if exists:
+            self.bkp.deserialize(uncompress)
         self.cursor = self.db.cursor()
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS exercises (

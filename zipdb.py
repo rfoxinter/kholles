@@ -5,7 +5,10 @@ def compress(db: bytes, flnm: str = "exercices.db.zip") -> None:
     myzip.writestr("exercices.db", db)
     myzip.close()
 
-def uncompress():
-    myzip = ZipFile("exercices.db.zip", "r", compression=ZIP_DEFLATED, compresslevel=9)
-    db = myzip.open("exercices.db", "r").read()
-    return db
+def uncompress() -> tuple[bytes, bool]:
+    try:
+        myzip = ZipFile("exercices.db.zip", "r", compression=ZIP_DEFLATED, compresslevel=9)
+        db = myzip.open("exercices.db", "r").read()
+        return db, True
+    except FileNotFoundError:
+        return b'', False

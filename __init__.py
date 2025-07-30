@@ -1,13 +1,16 @@
-from ctypes import windll
 from datetime import datetime
+from os import name
 import sys
 from time import sleep
+if name == "nt":
+    from ctypes import windll
 
 from PyQt6.QtWidgets import QApplication
 
 import database
 import ui
 import zipdb
+
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -18,9 +21,10 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     zipdb.compress(db.db.serialize(), f"exercices_{datetime.today().strftime('%Y%m%d%H%M%S')}.bkp.db.zip")
 sys.excepthook = handle_exception
 
-app = QApplication(sys.argv)
-windll.shell32.SetCurrentProcessExplicitAppUserModelID('ecerciceskholle')
-windll.shcore.SetProcessDpiAwareness(True)
+app = QApplication(sys.argv)    
+if name == "nt":
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID('ecerciceskholle')
+    windll.shcore.SetProcessDpiAwareness(True)
 db = database.database_exercices()
 em = ui.ExerciseManager(app, db, __file__)
 em.show()
