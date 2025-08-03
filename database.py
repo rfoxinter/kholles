@@ -63,6 +63,15 @@ class database_exercices():
         except IntegrityError:
             warn(f"Chapter {new_name} already exists", DatabaseWarning)
 
+    def delete_chapter(self, year_name: str) -> None:
+        try:
+            self.cursor.execute("""
+                DELETE FROM chapters WHERE name = ?
+            """, (year_name,))
+            self.db.commit()
+        except IntegrityError:
+            warn(f"Year {year_name} does not exist", DatabaseWarning)
+
     def get_chapter_id(self, name: str) -> int:
         self.cursor.execute(f"SELECT id FROM chapters WHERE name = (?)", (name,))
         return self.cursor.fetchall()[0][0]
@@ -104,6 +113,15 @@ class database_exercices():
             self.db.commit()
         except IntegrityError:
             warn(f"Year {new_name} already exists", DatabaseWarning)
+
+    def delete_year(self, year_name: str) -> None:
+        try:
+            self.cursor.execute("""
+                DELETE FROM years WHERE name = ?
+            """, (year_name,))
+            self.db.commit()
+        except IntegrityError:
+            warn(f"Year {year_name} does not exist", DatabaseWarning)
 
     def get_year_id(self, name: str) -> int:
         self.cursor.execute(f"SELECT id FROM years WHERE name = (?)", (name,))

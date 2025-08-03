@@ -1,5 +1,6 @@
 from datetime import datetime
 from os import name
+from os.path import dirname
 import sys
 from time import sleep
 if name == "nt":
@@ -26,7 +27,7 @@ if name == "nt":
     windll.shell32.SetCurrentProcessExplicitAppUserModelID('ecerciceskholle')
     windll.shcore.SetProcessDpiAwareness(True)
 db = database.database_exercices()
-em = ui.ExerciseManager(app, db, __file__)
+em = ui.ExerciseManager(app, db, dirname(__file__))
 em.show()
 exit_code = app.exec()
 print("Writing database.")

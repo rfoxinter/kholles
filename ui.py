@@ -1,5 +1,5 @@
-from os import chdir, system
-from os.path import dirname
+from os import chdir, name, system
+from os.path import split
 from re import sub
 
 from PyQt6.QtCore import Qt
@@ -41,7 +41,7 @@ class ExerciseManager(QWidget):
         self.db = db
         self.app = app
         self.file_dir = file_dir
-        QFontDatabase.addApplicationFont('fonts/stars.ttf')
+        QFontDatabase.addApplicationFont('fonts/Stars.ttf')
         QFontDatabase.addApplicationFont('fonts/Ubuntu-Regular.ttf')
         QFontDatabase.addApplicationFont('fonts/UbuntuMono-Regular.ttf')
         QFontDatabase.addApplicationFont('fonts/UbuntuMono-Bold.ttf')
@@ -57,8 +57,8 @@ class ExerciseManager(QWidget):
         buttons = [
             ("Ajouter un exercice", lambda: self.open_add_exercise_window(lambda _, b, c, d, e, f, g, h: self.db.add_exercise(b, c, d, e, f, g, h))),
             ("Modifier un exercice", self.open_edit_exercise_window),
-            ("Edit Years", self.open_window),
-            ("Edit Chapters", self.open_window),
+            ("Gérer les années", self.open_manage_years_window),
+            ("Gérer les chapitres", self.open_manage_chaps_window),
             ("Générer une feuille d\u2019exercices", self.gen_exercises),
             ("Visualiser les exercices", self.gen_book)
         ]
@@ -109,13 +109,24 @@ class ExerciseManager(QWidget):
         difficulty_selector = QComboBox()
         labels = ['B.', 'D.', 'E.', 'F.', 'G.', 'H.', 'B', 'D', 'E', 'F', 'G', 'H']
         model = QStandardItemModel()
-        for i, label in enumerate(labels):
-            item = QStandardItem(label)
-            if i < 6:
-                item.setForeground(Qt.GlobalColor.cyan)
-            else:
-                item.setForeground(Qt.GlobalColor.white)
-            model.appendRow(item)
+        if name == "nt":
+            for i, label in enumerate(labels):
+                item = QStandardItem(label)
+                if i < 6:
+                    item.setForeground(Qt.GlobalColor.cyan)
+                else:
+                    item.setForeground(Qt.GlobalColor.white)
+                model.appendRow(item)
+        else:
+            for i, label in enumerate(labels):
+                item = QStandardItem(label)
+                if i < 6:
+                    item.setForeground(Qt.GlobalColor.cyan)
+                    item.setBackground(Qt.GlobalColor.darkCyan)
+                else:
+                    item.setForeground(Qt.GlobalColor.white)
+                    item.setBackground(Qt.GlobalColor.darkGray)
+                model.appendRow(item)
 
         difficulty_selector.setModel(model)
         difficulty_selector.setCurrentIndex(ex_diff if ex_diff != None else 6)
@@ -453,6 +464,174 @@ class ExerciseManager(QWidget):
 
         dialog.exec()
 
+    def open_manage_years_window(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Gestion des années")
+        dialog.setGeometry(150, 150, 400, 400)
+        dialog.setStyleSheet("background-color: #121212; color: white;")
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+
+        # List of Years
+        year_list = QListWidget()
+        year_list.addItems(self.db.list_year_names())
+        year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
+        layout.addWidget(year_list)
+
+        # Text Input for Year Name
+        input_field = QLineEdit()
+        input_field.setPlaceholderText("Nom de l\u2019année")
+        input_field.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 5px;")
+        layout.addWidget(input_field)
+
+        # Buttons Layout
+        btn_layout = QHBoxLayout()
+
+        # Add Year Button
+        btn_add = QPushButton("Ajouter l\u2019année")
+        btn_add.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_add)
+
+        # Edit Year Button
+        btn_edit = QPushButton("Modifier l\u2019année")
+        btn_edit.setStyleSheet("background-color: #555500; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_edit)
+
+        # Delete Year Button
+        btn_delete = QPushButton("Supprimer l\u2019année")
+        btn_delete.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_delete)
+
+        layout.addLayout(btn_layout)
+
+        # Close Button
+        btn_close = QPushButton("Fermer")
+        btn_close.setStyleSheet("background-color: #222; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_close.clicked.connect(dialog.close)
+        layout.addWidget(btn_close)
+
+        # --- Logic Functions ---
+
+        def refresh_year_list():
+            year_list.clear()
+            year_list.addItems(self.db.list_year_names())
+
+        def add_year():
+            name = input_field.text().strip()
+            if name:
+                self.db.add_year(name)
+                refresh_year_list()
+                input_field.clear()
+
+        def edit_year():
+            selected = year_list.currentItem()
+            if selected:
+                old_name = selected.text()
+                new_name = input_field.text().strip()
+                if new_name:
+                    self.db.update_year(old_name, new_name)
+                    refresh_year_list()
+                    input_field.clear()
+
+        def delete_year():
+            selected = year_list.currentItem()
+            if selected:
+                year_name = selected.text()
+                self.db.delete_year(year_name)
+                refresh_year_list()
+
+        # --- Connect Buttons ---
+        btn_add.clicked.connect(add_year)
+        btn_edit.clicked.connect(edit_year)
+        btn_delete.clicked.connect(delete_year)
+
+        dialog.exec()
+
+    def open_manage_chaps_window(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Gestion des chapitres")
+        dialog.setGeometry(150, 150, 400, 400)
+        dialog.setStyleSheet("background-color: #121212; color: white;")
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+
+        # List of Chaps
+        chap_list = QListWidget()
+        chap_list.addItems(self.db.list_chapter_names())
+        chap_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
+        layout.addWidget(chap_list)
+
+        # Text Input for Chap Name
+        input_field = QLineEdit()
+        input_field.setPlaceholderText("Nom de le chapitre")
+        input_field.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 5px;")
+        layout.addWidget(input_field)
+
+        # Buttons Layout
+        btn_layout = QHBoxLayout()
+
+        # Add Chap Button
+        btn_add = QPushButton("Ajouter le chapitre")
+        btn_add.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_add)
+
+        # Edit Chap Button
+        btn_edit = QPushButton("Modifier le chapitre")
+        btn_edit.setStyleSheet("background-color: #555500; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_edit)
+
+        # Delete Chap Button
+        btn_delete = QPushButton("Supprimer le chapitre")
+        btn_delete.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_layout.addWidget(btn_delete)
+
+        layout.addLayout(btn_layout)
+
+        # Close Button
+        btn_close = QPushButton("Fermer")
+        btn_close.setStyleSheet("background-color: #222; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_close.clicked.connect(dialog.close)
+        layout.addWidget(btn_close)
+
+        # --- Logic Functions ---
+
+        def refresh_chap_list():
+            chap_list.clear()
+            chap_list.addItems(self.db.list_chapter_names())
+
+        def add_chap():
+            name = input_field.text().strip()
+            if name:
+                self.db.add_chapter(name)
+                refresh_chap_list()
+                input_field.clear()
+
+        def edit_chap():
+            selected = chap_list.currentItem()
+            if selected:
+                old_name = selected.text()
+                new_name = input_field.text().strip()
+                if new_name:
+                    self.db.update_chapter(old_name, new_name)
+                    refresh_chap_list()
+                    input_field.clear()
+
+        def delete_chap():
+            selected = chap_list.currentItem()
+            if selected:
+                chap_name = selected.text()
+                self.db.delete_chapter(chap_name)
+                refresh_chap_list()
+
+        # --- Connect Buttons ---
+        btn_add.clicked.connect(add_chap)
+        btn_edit.clicked.connect(edit_chap)
+        btn_delete.clicked.connect(delete_chap)
+
+        dialog.exec()
+
     def gen_exercises(self):
         dialog = QDialog(self)
         dialog.setGeometry(150, 150, 350, 250)
@@ -526,8 +705,10 @@ class ExerciseManager(QWidget):
             generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[1].text().split(","))), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[2].text().split(","))), len(str(self.db.max_exercises())), dest_path["path"], True)
             btn_preview.setText("Compilation en cours")
             try:
-                system(f"pdflatex {dest_path['path']}")
-                chdir(dirname(self.file_dir))
+                folder, file = split(dest_path['path'])
+                chdir(folder)
+                system(f"pdflatex {file}")
+                chdir(self.file_dir)
                 system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" file.pdf")
                 btn_preview.setText("Prévisualiser la feuille")
                 ViewerDialog(self, "file.pdf")
@@ -540,9 +721,12 @@ class ExerciseManager(QWidget):
             btn_compile.setText("Compilation en cours")
             self.app.processEvents()
             try:
-                system(f"pdflatex {dest_path['path']}")
-                system(f"pdflatex {dest_path['path']}")
-                system(f"pdflatex {dest_path['path']}")
+                folder, file = split(dest_path['path'])
+                chdir(folder)
+                system(f"pdflatex {file}")
+                system(f"pdflatex {file}")
+                system(f"pdflatex {file}")
+                chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
                 btn_compile.setText("Une erreur est survenue")
@@ -552,63 +736,6 @@ class ExerciseManager(QWidget):
 
         dialog.exec()
 
-    # def gen_book(self):
-    #     dialog = QDialog(self)
-    #     dialog.setGeometry(150, 150, 350, 250)
-    #     dialog.setWindowTitle("Visualiser les exercices")
-    #     dialog.setStyleSheet("background-color: #121212;")
-    #     dialog.setWindowIcon(QIcon("favicon.ico"))
-    #     dialog.setModal(True)
-
-    #     layout = QVBoxLayout(dialog)
-
-    #     # Destination selection
-    #     dest_button = QPushButton("Destination")
-    #     dest_button.setCursor(Qt.CursorShape.PointingHandCursor)
-    #     dest_button.setMaximumWidth(350)
-    #     dest_button.setStyleSheet("background-color: #555; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
-    #     layout.addWidget(dest_button)
-
-    #     dest_path = {"path": ""}  # Mutable to capture path from inner scope
-
-    #     def choose_destination():
-    #         file_path, _ = QFileDialog.getSaveFileName(dialog, "Choisir le fichier", "", "LaTeX files (*.tex)")
-    #         if file_path:
-    #             dest_path["path"] = file_path
-    #             dest_button.setText(f"Destination: {file_path}")
-
-    #     dest_button.clicked.connect(choose_destination)
-
-    #     # Action Buttons (Preview / Compile / Cancel)
-    #     button_layout = QHBoxLayout()
-
-    #     btn_compile = QPushButton("Compiler")
-    #     btn_compile.setCursor(Qt.CursorShape.PointingHandCursor)
-    #     btn_compile.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
-    #     button_layout.addWidget(btn_compile)
-
-    #     btn_cancel = QPushButton("Annuler")
-    #     btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
-    #     btn_cancel.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
-    #     btn_cancel.clicked.connect(dialog.close)
-    #     button_layout.addWidget(btn_cancel)
-
-    #     layout.addLayout(button_layout)
-
-    #     def compile_book():
-    #         gen_book(self.db, dest_path["path"])
-    #         btn_compile.setText("Compilation en cours")
-    #         try:
-    #             system(f"pdflatex {dest_path['path']}")
-    #             system(f"pdflatex {dest_path['path']}")
-    #             system(f"pdflatex {dest_path['path']}")
-    #             btn_compile.setText("Compilation terminée")
-    #         except:
-    #             btn_compile.setText("Une erreur est survenue")
-
-    #     btn_compile.clicked.connect(compile_book)
-
-    #     dialog.exec()
     def gen_book(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Visualiser les exercices")
@@ -672,9 +799,12 @@ class ExerciseManager(QWidget):
             btn_compile.setText("Compilation en cours")
             self.app.processEvents()
             try:
-                system(f"pdflatex {dest_path['path']}")
-                system(f"pdflatex {dest_path['path']}")
-                system(f"pdflatex {dest_path['path']}")
+                folder, file = split(dest_path['path'])
+                chdir(folder)
+                system(f"pdflatex {file}")
+                system(f"pdflatex {file}")
+                system(f"pdflatex {file}")
+                chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
                 btn_compile.setText("Une erreur est survenue")
@@ -683,8 +813,8 @@ class ExerciseManager(QWidget):
 
         dialog.exec()
 
-
     def open_window(self):
+        # Dummy window
         dialog = QDialog(self)
         dialog.setWindowTitle('title')
         dialog.setGeometry(150, 150, 350, 250)

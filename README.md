@@ -1,4 +1,5 @@
 # Exercises manager
+![Version Badge](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2F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%40raw.githubusercontent.com%2Frfoxinter%2Fkholles%2Fmain%2FVERSIONS.md&search=(%3F%3A%23%23%20)(%5B0-9%5D*)&replace=%241&label=Version)
 ## Installation
 Python 3.10 or higher is required to run the exercise manager.  
 The following libraries need to be installed to run the script:
