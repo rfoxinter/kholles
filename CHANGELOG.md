@@ -1,4 +1,14 @@
 # Version history
+## 202508071110
+- Fix exercise sheet generation for students 2 and 3
+- Imports restricted to required functions and classes
+- Added debug mode
+- Sort years and chapters in manager
+- Change database compression format
+- Hide scrollbars
+- Add export and import feature
+- Use the pCloud API to store the database and generated PDF files
+- Use the pCloud API to fetch the database
 ## 202508031900
 - Fix stars font not applying in <span style="font-family: monospace;">posix</span> systems
 - Workaround for stars displaying with only one colour in the difficulty dropdown on <span style="font-family: monospace;">posix</span> systems by changing the background

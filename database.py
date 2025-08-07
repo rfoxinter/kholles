@@ -1,7 +1,7 @@
 from sqlite3 import IntegrityError, connect
 from warnings import warn
 
-import zipdb
+from zipdb import uncompress as dbuncompress
 
 class DatabaseWarning(Warning):
     pass
@@ -10,11 +10,11 @@ class database_exercices():
     def __init__(self) -> None:
         # self.db = connect("exercices.db")
         self.db = connect(":memory:")
-        uncompress, exists = zipdb.uncompress()
+        uncompress, exists = dbuncompress()
         if exists:
             self.db.deserialize(uncompress)
         self.bkp = connect(":memory:")
-        uncompress, exists = zipdb.uncompress()
+        uncompress, exists = dbuncompress()
         if exists:
             self.bkp.deserialize(uncompress)
         self.cursor = self.db.cursor()

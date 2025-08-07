@@ -1,13 +1,13 @@
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZIP_LZMA, ZipFile
 
 def compress(db: bytes, flnm: str = "exercices.db.zip") -> None:
-    myzip = ZipFile(flnm, "w", compression=ZIP_DEFLATED, compresslevel=9)
+    myzip = ZipFile(flnm, "w", compression=ZIP_LZMA, compresslevel=9)
     myzip.writestr("exercices.db", db)
     myzip.close()
 
 def uncompress() -> tuple[bytes, bool]:
     try:
-        myzip = ZipFile("exercices.db.zip", "r", compression=ZIP_DEFLATED, compresslevel=9)
+        myzip = ZipFile("exercices.db.zip", "r", compression=ZIP_LZMA, compresslevel=9)
         db = myzip.open("exercices.db", "r").read()
         return db, True
     except FileNotFoundError:

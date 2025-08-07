@@ -4,12 +4,11 @@
 ## Bug fixes
 
 ## New features
-- [ ]&nbsp;Make the HTTP server for visualisation available
-- [ ]&nbsp;Add export & import exercise feature
+- [ ]&nbsp;Make the Python HTTP server for visualisation available
+- [ ]&nbsp;Add database version to the <span style="font-family: monospace;">README</span>
 
 ## QoL improvements
 - [ ]&nbsp;Use the Github API to fetch and unzip <span style="font-family: monospace;">pdf.js</span>
-- [ ]&nbsp;Store the database online with unregistered download and registered upload
 
 ## Other tasks
-- []&nbsp;Add ```legal``` folder with the licences
+- []&nbsp;Add a <span style="font-family: monospace;">legal</span> folder with the licences

@@ -29,13 +29,14 @@ from superqt.utils import CodeSyntaxHighlight
 
 from database import database_exercices
 from exercises import get_exercises
+from export import export_ex, import_ex
 from latex import gen_book, generate_exercise_sheet
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
 
 
 
-class ExerciseManager(QWidget):
+class exercise_manager(QWidget):
     def __init__(self, app: QApplication, db: database_exercices, file_dir: str):
         super().__init__()
         self.db = db
@@ -52,6 +53,14 @@ class ExerciseManager(QWidget):
         self.setGeometry(100, 100, 350, 350)
         self.setStyleSheet("font-family: 'Ubuntu'; font-size: 12px; background-color: #0d0d0d;")
         self.setWindowIcon(QIcon("favicon.ico"))
+        self.setStyleSheet("""
+            QScrollBar:vertical, QScrollBar:horizontal {
+                width: 0px;
+                height: 0px;
+                background: transparent;
+            }
+        """)
+
         
         layout = QVBoxLayout()
         buttons = [
@@ -60,7 +69,9 @@ class ExerciseManager(QWidget):
             ("Gérer les années", self.open_manage_years_window),
             ("Gérer les chapitres", self.open_manage_chaps_window),
             ("Générer une feuille d\u2019exercices", self.gen_exercises),
-            ("Visualiser les exercices", self.gen_book)
+            ("Visualiser les exercices", self.gen_book),
+            ("Exporter des exercices", self.export_exercises),
+            ("Importer des exercices", self.import_exercises)
         ]
         
         for text, handler in buttons:
@@ -74,20 +85,14 @@ class ExerciseManager(QWidget):
             
         self.setLayout(layout)
 
-    def open_add_exercise_window(self, add_func, _id: int = -1, ex_name: str = "", ex_diff: int = 6, ex_exr: str = "", ex_ans: str = "", ex_year: list = [], ex_chap: list[int] = [], ex_req_chap: list[int] = []):
+    def open_add_exercise_window(self, add_func, _id: int = -1, ex_name: str = "", ex_diff: int = 6, ex_exr: str = "", ex_ans: str = "", ex_year: list[int] = [], ex_chap: list[int] = [], ex_req_chap: list[int] = []):
         dialog = QDialog(self)
         dialog.setWindowTitle("Ajouter un exercice")
-        # dialog.setGeometry(150, 150, 400, 500)
         dialog.setStyleSheet("font-family: 'Ubuntu'; font-size: 12px;  background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
         
         layout = QVBoxLayout(dialog)
-        
-        # Title
-        # title_label = QLabel("Nom de l\u2019exercice")
-        # title_label.setStyleSheet("color: white; font-size: 14px;")
-        # layout.addWidget(title_label)
         
         title_input = QPlainTextEdit()
         title_input.setPlainText(ex_name)
@@ -95,17 +100,7 @@ class ExerciseManager(QWidget):
         title_input.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         title_input.setPlaceholderText('Nom de l\u2019exercice')
         layout.addWidget(title_input)
-        
-        # Difficulty
-            # difficulty_label = QLabel("Difficulty (0-6):")
-            # difficulty_label.setStyleSheet("color: white; font-size: 14px;")
-            # layout.addWidget(difficulty_label)
-        
-        # difficulty_selector = QComboBox()
-        # difficulty_selector.addItems(['B','D','E','F','G','H'])
-        # difficulty_selector.setCurrentIndex(ex_diff or 0)
-        # difficulty_selector.setStyleSheet("font-family: dsrom12; background-color: #333; color: white; font-size: 25px;")
-        # layout.addWidget(difficulty_selector)
+
         difficulty_selector = QComboBox()
         labels = ['B.', 'D.', 'E.', 'F.', 'G.', 'H.', 'B', 'D', 'E', 'F', 'G', 'H']
         model = QStandardItemModel()
@@ -393,11 +388,10 @@ class ExerciseManager(QWidget):
             add_func(_id, title_input.toPlainText(), diff, exercise_input.toPlainText(), answer_input.toPlainText(), years, req_chaps, chaps)
             dlg = QMessageBox(self)
             dlg.setWindowTitle("Ajouter un exercice")
-            dlg.setText("Ajout/modification effectuée")
+            dlg.setText("Ajout/modification effectué(e)")
             button = dlg.exec()
 
             dialog.accept()
-            # self.db.add_exercise(title_input.toPlainText(), diff, exercise_input.toPlainText(), answer_input.toPlainText(), years[0], req_chaps, chaps)
 
         # Add Exercise Button on the left
         btn_add_exercise = QPushButton("Ajouter/Modifier l\u2019exercice")
@@ -467,7 +461,6 @@ class ExerciseManager(QWidget):
     def open_manage_years_window(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Gestion des années")
-        dialog.setGeometry(150, 150, 400, 400)
         dialog.setStyleSheet("background-color: #121212; color: white;")
         dialog.setModal(True)
 
@@ -475,7 +468,7 @@ class ExerciseManager(QWidget):
 
         # List of Years
         year_list = QListWidget()
-        year_list.addItems(self.db.list_year_names())
+        year_list.addItems(sorted(self.db.list_year_names()))
         year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(year_list)
 
@@ -515,7 +508,7 @@ class ExerciseManager(QWidget):
 
         def refresh_year_list():
             year_list.clear()
-            year_list.addItems(self.db.list_year_names())
+            year_list.addItems(sorted(self.db.list_year_names()))
 
         def add_year():
             name = input_field.text().strip()
@@ -551,7 +544,6 @@ class ExerciseManager(QWidget):
     def open_manage_chaps_window(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Gestion des chapitres")
-        dialog.setGeometry(150, 150, 400, 400)
         dialog.setStyleSheet("background-color: #121212; color: white;")
         dialog.setModal(True)
 
@@ -559,7 +551,7 @@ class ExerciseManager(QWidget):
 
         # List of Chaps
         chap_list = QListWidget()
-        chap_list.addItems(self.db.list_chapter_names())
+        chap_list.addItems(sorted(self.db.list_chapter_names()))
         chap_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(chap_list)
 
@@ -599,7 +591,7 @@ class ExerciseManager(QWidget):
 
         def refresh_chap_list():
             chap_list.clear()
-            chap_list.addItems(self.db.list_chapter_names())
+            chap_list.addItems(sorted(self.db.list_chapter_names()))
 
         def add_chap():
             name = input_field.text().strip()
@@ -634,7 +626,6 @@ class ExerciseManager(QWidget):
 
     def gen_exercises(self):
         dialog = QDialog(self)
-        dialog.setGeometry(150, 150, 350, 250)
         dialog.setWindowTitle("Générer une feuille d’exercices")
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
@@ -643,9 +634,6 @@ class ExerciseManager(QWidget):
         layout = QVBoxLayout(dialog)
 
         spinboxes = []
-
-        # Candidate exercise inputs
-        text_inputs = []
 
         for i in range(1, 4):
             label = QLabel(f"Exercices de l\u2019élève {i}")
@@ -657,8 +645,6 @@ class ExerciseManager(QWidget):
             input_field.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 8px; border-radius: 5px;")
             spinboxes.append(input_field)
             layout.addWidget(input_field)
-
-            text_inputs.append(input_field)
 
 
 
@@ -717,7 +703,8 @@ class ExerciseManager(QWidget):
                 
 
         def compile_sheet():
-            generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[1].text().split(","))), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[2].text().split(","))), len(str(self.db.max_exercises())), dest_path["path"])
+            # generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[1].text().split(","))), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[2].text().split(","))), len(str(self.db.max_exercises())), dest_path["path"])
+            generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), get_exercises(self.db, spinboxes[1].text()), get_exercises(self.db, spinboxes[2].text()), len(str(self.db.max_exercises())), dest_path["path"])
             btn_compile.setText("Compilation en cours")
             self.app.processEvents()
             try:
@@ -813,11 +800,127 @@ class ExerciseManager(QWidget):
 
         dialog.exec()
 
+    def export_exercises(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Exporter des exercices")
+        dialog.setStyleSheet("background-color: #121212;")
+        dialog.setWindowIcon(QIcon("favicon.ico"))
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+
+        label = QLabel(f"Exercices à exporter")
+        label.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(label)
+
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(f"Exercices à exporter")
+        input_field.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 8px; border-radius: 5px;")
+        layout.addWidget(input_field)
+
+        # Destination selection
+        dest_button = QPushButton("Destination")
+        dest_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        dest_button.setMaximumWidth(350)
+        dest_button.setStyleSheet("background-color: #555; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        layout.addWidget(dest_button)
+
+        dest_path = {"path": ""}  # Mutable to capture path from inner scope
+
+        def choose_destination():
+            file_path, _ = QFileDialog.getSaveFileName(dialog, "Choisir le fichier", "", "Zip files (*.zip)")
+            if file_path:
+                dest_path["path"] = file_path
+                dest_button.setText(f"Destination: {file_path}")
+
+        dest_button.clicked.connect(choose_destination)
+
+        button_layout = QHBoxLayout()
+
+        btn_exp = QPushButton("Exporter les exercices")
+        btn_exp.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_exp.setStyleSheet("background-color: #336600; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        button_layout.addWidget(btn_exp)
+
+        btn_cancel = QPushButton("Annuler")
+        btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cancel.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_cancel.clicked.connect(dialog.close)
+        button_layout.addWidget(btn_cancel)
+
+        layout.addLayout(button_layout)
+
+        def export_zip():
+            export_ex(self.db, dest_path["path"], list(map(int, filter(lambda x: x != "", input_field.text().split(";")))))
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Exporter des exercices")
+            dlg.setText("Export effectué")
+            button = dlg.exec()
+
+            dialog.accept()
+
+        btn_exp.clicked.connect(export_zip)
+
+        dialog.exec()
+
+    def import_exercises(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Importer des exercices")
+        dialog.setStyleSheet("background-color: #121212;")
+        dialog.setWindowIcon(QIcon("favicon.ico"))
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+
+        # File select button
+        file_button = QPushButton("Choisir un fichier")
+        file_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        file_button.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        layout.addWidget(file_button)
+
+        file_path = {"path": ""}
+
+        def choose_file():
+            flnm, _ = QFileDialog.getOpenFileName(dialog, "Sélectionner un fichier", "", "zip files (*.zip)")
+            if flnm:
+                file_path["path"] = flnm
+                file_button.setText(f"Fichier : {flnm.split('/')[-1]}")
+
+        file_button.clicked.connect(choose_file)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        import_button = QPushButton("Importer")
+        import_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        import_button.setStyleSheet("background-color: #006600; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        button_layout.addWidget(import_button)
+
+        cancel_button = QPushButton("Annuler")
+        cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_button.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        cancel_button.clicked.connect(dialog.close)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+
+        def _import():
+            if file_path["path"]:
+                import_ex(self, self.db, file_path["path"])
+                dialog.accept()
+            else:
+                error_label = QLabel("Aucun fichier sélectionné.")
+                error_label.setStyleSheet("color: red; font-size: 12px;")
+                layout.addWidget(error_label)
+
+        import_button.clicked.connect(_import)
+
+        dialog.exec()
+
     def open_window(self):
         # Dummy window
         dialog = QDialog(self)
         dialog.setWindowTitle('title')
-        dialog.setGeometry(150, 150, 350, 250)
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
