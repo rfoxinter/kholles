@@ -1,11 +1,18 @@
+from argparse import ArgumentParser
 from json import load
 from mimetypes import guess_type
 from os.path import basename
+from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from uuid import uuid4
 from warnings import warn
+
+p = ArgumentParser()
+p.add_argument('--d', help = '[d]ownload files')
+p.add_argument('--u', type = str, help = '[u]pload files', default = 'exercices.db.zip')
+args = p.parse_args()
 
 def call_api(endpoint, params) -> dict:
     url = f"https://api.pcloud.com/{endpoint}?{urlencode(params)}"
@@ -19,32 +26,38 @@ def download() -> bool:
     except OSError:
         print("Database not downloaded.")
         return False
-    try:
-        data = call_api("showpublink", {"code": file_code})
-        file_info = data.get("metadata")
-        assert file_info
-        fileid = file_info.get("fileid")
-        flnm = file_info.get("name")
+    # try:
+    data = call_api("showpublink", {"code": file_code})
+    folder_info = data.get("metadata")
+    assert type(folder_info) == dict
+    files = folder_info.get("contents")
+    assert type(files) == list
+    flnm = "exercices.db.zip"
+    for file in files:
+        assert type(file) == dict
+        if file.get("name"):
+            fileid = file.get("fileid")
+            break
 
-        dl = call_api("getpublinkdownload", {"code": file_code, "fileid": fileid})
-        hosts = dl.get("hosts")
-        assert hosts
-        path = dl.get("path")
+    dl = call_api("getpublinkdownload", {"code": file_code, "fileid": fileid})
+    hosts = dl.get("hosts")
+    assert hosts
+    path = dl.get("path")
 
-        download_url = f"https://{hosts[0]}{path}"
+    download_url = f"https://{hosts[0]}{path}"
 
-        with urlopen(download_url) as resp, open(flnm, "wb") as out:
-            while True:
-                chunk = resp.read(8192)
-                if not chunk:
-                    break
-                out.write(chunk)
+    with urlopen(download_url) as resp, open(flnm, "wb") as out:
+        while True:
+            chunk = resp.read(8192)
+            if not chunk:
+                break
+            out.write(chunk)
 
-        return True
-    except:
-        return False
+    return True
+    # except:
+    #     return False
 
-def _upload(file_path: str) -> None:
+def _upload(file_path: str) -> bool:
     remote_path = "/Kholles"
 
     with open("token.txt", "r") as f:
@@ -78,13 +91,13 @@ def _upload(file_path: str) -> None:
         for line in body_lines
     )
 
-    req = Request(full_url, data=body)
+    req = Request(full_url, body)
     req.add_header("Content-Type", content_type)
     req.add_header("Content-Length", str(len(body)))
     try:
         with urlopen(req) as response:
             upload_res = load(response)["result"] == 0
-    except (HTTPError, URLError):
+    except (HTTPError, URLError) as e:
         warn(f"An error occurred uploading {file_path}.")
         upload_res = False
 
@@ -93,16 +106,13 @@ def _upload(file_path: str) -> None:
             "auth": token,
             "path": "/Kholles/" + file_path
         }
-        url = f"https://api.pcloud.com/getfilepublink?{urlencode(params)}"
         try:
-            with urlopen(url) as response:
-                data = load(response)
-                if data.get("result") == 0:
-                    code = data["code"]
-                    with open("db_code.txt", "w", encoding="utf-8") as db_code:
-                        db_code.write(code)
+            data = call_api("getfilepublink", params)
+            if data.get("result") == 0:
+                return True
         except (HTTPError, URLError):
             pass
+    return False
 
 def _delete(file_path: str) -> None:
     file_path = "/Kholles/" + file_path
@@ -114,19 +124,47 @@ def _delete(file_path: str) -> None:
         "auth": token,
         "path": file_path
     }
-    url = f"https://api.pcloud.com/deletefile?{urlencode(params)}"
     try:
-        with urlopen(url) as response:
-            return load(response)["result"] == 0
+        data = call_api("deletefile", params)
+        return data["result"] == 0
     except (HTTPError, URLError) as e:
         raise e
 
-def upload(flnms: list[str] = ["exercices.db.zip", "Exercices.pdf", "ExercicesCorriges.pdf"]) -> None:
+def upload(flnms: list[str] = ["exercices.db.zip", "Exercices.pdf", "ExercicesCorriges.pdf"]) -> bool:
+    res = True
     for flnm in flnms:
         try:
             _delete(flnm)
         except:
             pass
-        _upload(flnm)
+        res &= _upload(flnm)
+    return res
 
-upload()
+if __name__ == "__main__":
+    action = ""
+    if (not args.d) and (not args.u):
+        action = input("Choose an options [u]pload/[d]ownload: ")
+    if action == "d" or args.d:
+        print("Downloading database...")
+        res = download()
+        if not res:
+            print("Downloading failed, retrying in 5 seconds.")
+            sleep(5)
+            print("Downloading database...")
+            download()
+        print("Database downloaded.")
+    elif args.u:
+        for file in args.u.split(","):
+            fl = file.strip()
+            print(f"Uploading {fl}")
+            res = upload([fl])
+            print(f"{fl} uploaded." if res else f"Error uploading {fl}")
+    elif action == "u":
+        files = input("Files to download (default: exercices.db.zip) ").split(',')
+        for file in files:
+            fl = file.strip()
+            print(f"Uploading {fl}")
+            res = upload([fl])
+            print(f"{fl} uploaded." if res else f"Error uploading {fl}")
+    else:
+        print("Incorrect input.")

@@ -1,22 +1,23 @@
 from typing import Iterable
 
 from database import database_exercices
+from exercises import get_exercises
 
 class latex_document():
-    def __init__(self, db: database_exercices, filename: str, numberwithin: str = "") -> None:
+    def __init__(self, db: database_exercices, filename: str, numberwithin: str = "", extra_header: str = "") -> None:
         self.db = db
         self.flnm = filename
-        self.content = gen_header(numberwithin)
+        self.content = gen_header(numberwithin, extra_header)
     def add_toc(self) -> None:
         self.content += "\n\\tableofcontents"
     def add_sec(self, name: str) -> None:
         self.content += f"\n\\section{{{name}}}"
     def add_ssec(self, name: str) -> None:
         self.content += f"\n\\subsection{{{name}}}"
-    def add_exercises(self, exs: list[int], showdiff: bool = True, showid: bool = True, showans: bool = True, showfullinfo: bool = False, showreq: bool = False, currchap: str = "") -> None:
-        self.content += gen_exercises(self.db, map(self.db.get_exercise, exs), len(str(self.db.max_exercises())), showdiff, showid, showans, "\n\\vspace{5pt}\n%", showfullinfo, showreq, currchap)
-    def add_exercise(self, ex: int, showdiff: bool = True, showid: bool = True, showans: bool = True, showfullinfo: bool = False, showreq: bool = False, currchap: str = "") -> None:
-        self.content += gen_exercises(self.db, [self.db.get_exercise(ex)], len(str(self.db.max_exercises())), showdiff, showid, showans, "\n\\vspace{5pt}\n%", showfullinfo, showreq, currchap)
+    def add_exercises(self, exs: list[int], showdiff: bool = True, showid: bool = True, showans: bool = True, showfullinfo: bool = False, showreq: bool = False, currchap: str = "", curryear: str = "") -> None:
+        self.content += gen_exercises(self.db, map(self.db.get_exercise, exs), len(str(self.db.max_exercises())), showdiff, showid, showans, "\n\\vspace{5pt}\n%", showfullinfo, showreq, currchap, curryear)
+    def add_exercise(self, ex: int, showdiff: bool = True, showid: bool = True, showans: bool = True, showfullinfo: bool = False, showreq: bool = False, currchap: str = "", curryear: str = "") -> None:
+        self.content += gen_exercises(self.db, [self.db.get_exercise(ex)], len(str(self.db.max_exercises())), showdiff, showid, showans, "\n\\vspace{5pt}\n%", showfullinfo, showreq, currchap, curryear)
     def jump_page(self) -> None:
         self.content += "\n\\null\\newpage%"
     def gen_doc(self) -> None:
@@ -34,7 +35,7 @@ def generate_latex(db: database_exercices, ex_list: Iterable[tuple[int, str, int
     file.write(content)
     file.close()
 
-def gen_header(numberwithin: str = "") -> str:
+def gen_header(numberwithin: str = "", extra_header: str = "") -> str:
     return """
         \\documentclass[11pt]{altarticle}
         \\toggleanalysepar\\togglebornelimits
@@ -65,6 +66,7 @@ def gen_header(numberwithin: str = "") -> str:
         \\allowdisplaybreaks
         \\setlist[enumerate]{topsep=0pt,nosep,label=\\itemnb{\\arabic*},beginpenalty=10000}
         \\usepackage{bbmt}
+    """ + extra_header + """
         \\begin{document}
     """
 
@@ -77,13 +79,13 @@ def diff_string(diff: int) -> str:
     else:
         return '\\Large\\filledstar' + str(diff)
 
-def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int, str, str, str, str, str]], max_exr_len: int, showdiff: bool = True, showid: bool = True, showans: bool = True, ex_sep: str = "", showfullinfo: bool = False, showreq: bool = False, currchap: str = "") -> str:
+def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int, str, str, str, str, str]], max_exr_len: int, showdiff: bool = True, showid: bool = True, showans: bool = True, ex_sep: str = "", showfullinfo: bool = False, showreq: bool = False, currchap: str = "", curryear: str = "") -> str:
     content = ""
     first = True
     for (_id, name, diff, exr, ans, year, req_chap, chap) in ex_list:
         if not first:
             content += ex_sep
-        content += f"\n\\exercice[{_id}-{currchap}][][][true]{{{name}}}\\marginnote{{{f'\\texttt{{[{str(_id).zfill(max_exr_len)}]}}' if showid else ''}}}{{\\reversemarginpar\\marginnote{{{diff_string(diff) if showdiff else ''}}}}}\\emph{{{(', '.join(map(lambda x: db.get_chapter(int(x)).lower(), (filter(lambda x: x != '' and x != currchap, req_chap.split(',')))))) if showreq else ""}}}\\par\\nobreak%"
+        content += f"\n\\exercice[{_id}-{currchap}-{curryear}][][][true]{{{name}}}\\marginnote{{{f'\\texttt{{[{str(_id).zfill(max_exr_len)}]}}' if showid else ''}}}{{\\reversemarginpar\\marginnote{{{diff_string(diff) if showdiff else ''}}}}}\\emph{{{(', '.join(map(lambda x: db.get_chapter(int(x)).lower(), (filter(lambda x: x != '' and x != currchap, req_chap.split(',')))))) if showreq else ""}}}\\par\\nobreak%"
         req_chap_str = ', '.join(map(lambda x: db.get_chapter(int(x)), (filter(lambda x, chap=currchap: x != '' and x != chap, req_chap.split(',')))))
         if showfullinfo:
             content += f"\n\\begingroup\\slshape Année(s): {', '.join(map(lambda x: db.get_year(int(x)), (filter(lambda x: x != '', year.split(',')))))}\\\\Chapitre(s): {', '.join(map(lambda x: db.get_chapter(int(x)), (filter(lambda x: x != '', chap.split(',')))))} {('\\\\Chapitre(s) nécessaire(s): ' + req_chap_str) if req_chap_str else ''}\\endgroup%\n"
@@ -91,7 +93,7 @@ def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int,
         if showans:
             content += f"""%
                 \\vspace{{2.5pt}}
-                \\begin{{corrige}}{{exo {_id}-{currchap}}}
+                \\begin{{corrige}}{{exo {_id}-{currchap}-{curryear}}}
                     \\toggleanalysedisplay\\togglebigopdisplay\\togglelimlimits\\togglebornelimits%
                     {ans if ans != "" else "À venir\\dots"}
                 \\end{{corrige}}
@@ -183,7 +185,7 @@ def generate_exercise_sheet(ex_list_1: Iterable[tuple[int, str, int, str, str, s
     file.write(content)
     file.close()
 
-def gen_book(db: database_exercices, flnm: str, numberwithin: str = "subsection", showans: bool = False) -> None:
+def gen_book(db: database_exercices, flnm: str, numberwithin: str = "subsection", showans: bool = False, showdiff: bool = True) -> None:
     doc = latex_document(db, flnm, numberwithin)
     doc.add_toc()
     for y_id, yname in [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]: # À modifier, garder l'ordre
@@ -198,5 +200,45 @@ def gen_book(db: database_exercices, flnm: str, numberwithin: str = "subsection"
                 if not c:
                     doc.add_ssec(cname)
                     c = True
-                doc.add_exercise(x, showans=showans, showreq=True, currchap = str(c_id))
+                doc.add_exercise(x, showdiff=showdiff, showans=showans, showreq=True, currchap=str(c_id), curryear=str(y_id))
+    doc.gen_doc()
+
+def gen_exercise_book(db: database_exercices, flnm: str, ids: str, showans: bool = False, showdiff: bool = False) -> None:
+    extra_hd = """
+        \\usepackage{xparse}
+        \\makeatletter
+        \\ExplSyntaxOn
+        \\NewDocumentCommand{\\hideit}{}
+        {
+        \\gaweiliex_hide:
+        }
+        \\NewDocumentCommand{\\hideitems}{}
+        {
+        \\bool_set_true:N \\l_gaweiliex_hide_bool
+        }
+        \\NewDocumentCommand{\\showitems}{}
+        {
+        \\bool_set_false:N \\l_gaweiliex_hide_bool
+        }
+        \\bool_new:N \\l_gaweiliex_hide_bool
+        \\cs_new_protected:Nn \\gaweiliex_hide:
+        {
+        \\bool_if:NT \\l_gaweiliex_hide_bool
+        {
+            \\stepcounter{\\@enumctr}%
+            \\item[]\\vspace{-\\baselineskip}%
+            \\peek_regex_replace_once:nn
+            % search \\item followed by anything until finding
+            % \\item or \\hideit or \\end{<current environment>}
+            { \\c{item}.*?(\\c{item}|\\c{hideit}|\\c{end}\\{\\u{@currenvir}\\}) }
+            % replace by the matching item
+            { \\1 }
+        }
+        }
+        \\ExplSyntaxOff
+        \\makeatother
+        \\hideitems
+    """
+    doc = latex_document(db, flnm, extra_header=extra_hd)
+    doc.content += gen_exercises(db, get_exercises(doc.db, ids), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff)
     doc.gen_doc()

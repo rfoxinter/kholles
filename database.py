@@ -178,10 +178,3 @@ class database_exercices():
     def max_exercises(self) -> int:
         self.cursor.execute("SELECT seq FROM sqlite_sequence WHERE name = 'exercises'")
         return self.cursor.fetchall()[0][0]
-
-# db = database_exercices()
-# db.update_chapter("Approximations de fonctions", "Continuité")
-# # db.add_chapter("Suites de fonctions")
-# # db.add_year("MP(I)")
-# # db.add_exercise("Théorème de Dini", 3, "Montrer le théorème", "Corrigé", 1, [2], [])
-# print(db.list_exercises())

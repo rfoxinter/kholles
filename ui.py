@@ -30,7 +30,7 @@ from superqt.utils import CodeSyntaxHighlight
 from database import database_exercices
 from exercises import get_exercises
 from export import export_ex, import_ex
-from latex import gen_book, generate_exercise_sheet
+from latex import gen_book, gen_exercise_book, generate_exercise_sheet
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
 
@@ -695,9 +695,9 @@ class exercise_manager(QWidget):
                 chdir(folder)
                 system(f"pdflatex {file}")
                 chdir(self.file_dir)
-                system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" file.pdf")
+                system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" _file.pdf")
                 btn_preview.setText("Prévisualiser la feuille")
-                ViewerDialog(self, "file.pdf")
+                ViewerDialog(self, "_file.pdf")
             except:
                 btn_preview.setText("Une erreur est survenue")
                 
@@ -731,6 +731,16 @@ class exercise_manager(QWidget):
         dialog.setModal(True)
 
         layout = QVBoxLayout(dialog)
+        
+        label = QLabel(f"Exercices à ajouter")
+        label.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(label)
+
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(f"Exercices à ajouter")
+        input_field.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 8px; border-radius: 5px;")
+        input_field.setText("*")
+        layout.addWidget(input_field)
 
         # Input: Compteur parent des exercices
         compteur_label = QLabel("Compteur parent des exercices")
@@ -747,6 +757,11 @@ class exercise_manager(QWidget):
         checkbox.setStyleSheet("color: white; font-size: 14px;")
         layout.addWidget(checkbox)
         checkbox.setChecked(True)
+
+        d_checkbox = QCheckBox("Afficher la difficulté")
+        d_checkbox.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(d_checkbox)
+        d_checkbox.setChecked(True)
 
         # Destination selection
         dest_button = QPushButton("Destination")
@@ -782,7 +797,11 @@ class exercise_manager(QWidget):
         layout.addLayout(button_layout)
 
         def compile_book():
-            gen_book(self.db, dest_path["path"], compteur_input.text(), checkbox.isChecked())
+            exs = input_field.text()
+            if exs == "*":
+                gen_book(self.db, dest_path["path"], compteur_input.text(), checkbox.isChecked(), d_checkbox.isChecked())
+            else:
+                gen_exercise_book(self.db, dest_path["path"], exs,  checkbox.isChecked(), d_checkbox.isChecked())
             btn_compile.setText("Compilation en cours")
             self.app.processEvents()
             try:

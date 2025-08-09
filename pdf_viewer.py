@@ -1,11 +1,13 @@
 from socket import gethostbyname, gethostname
 from threading import Thread
 from time import sleep
-from PyQt6.QtCore import QUrl
-from PyQt6.QtWidgets import QDialog, QVBoxLayout
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 from urllib.request import urlopen
-from os import system
+
+from PyQt6.QtCore import QUrl
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QDialog, QVBoxLayout
+
+from httpserver import main_httpserver
 
 
 class ViewerDialog(QDialog):
@@ -22,13 +24,12 @@ class ViewerDialog(QDialog):
         layout.addWidget(self.webView)
 
         # Start server thread
-        self.t = Thread(target=lambda: system("httpserver"))
+        self.t = Thread(target=main_httpserver)
         self.t.start()
 
         ip = gethostbyname(gethostname())
         sleep(2)
         pdf_url = f"http://{ip}/web/viewer.html?file=http://{ip}/{file}"
-        print(pdf_url, flush=True)
 
         self.webView.setUrl(QUrl(pdf_url))
 

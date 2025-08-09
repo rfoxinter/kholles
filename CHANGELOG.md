@@ -1,4 +1,9 @@
 # Version history
+## 202508091330
+- Fix duplicate exercises <span style="font-family: monospace;">id</span>s in different years in LaTeX
+- Make the database download use a static code
+- Make the Python HTTP server for visualisation available
+- Add exercise selection and difficulty option in export to PDF
 ## 202508071110
 - Fix exercise sheet generation for students 2 and 3
 - Imports restricted to required functions and classes
