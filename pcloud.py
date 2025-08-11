@@ -11,7 +11,7 @@ from warnings import warn
 
 p = ArgumentParser()
 p.add_argument('--d', help = '[d]ownload files')
-p.add_argument('--u', type = str, help = '[u]pload files', default = 'exercices.db.zip')
+p.add_argument('--u', type = str, help = '[u]pload files')
 args = p.parse_args()
 
 def call_api(endpoint, params) -> dict:
@@ -112,7 +112,7 @@ def _upload(file_path: str) -> bool:
                 return True
         except (HTTPError, URLError):
             pass
-    return False
+    return upload_res
 
 def _delete(file_path: str) -> None:
     file_path = "/Kholles/" + file_path
@@ -154,13 +154,16 @@ if __name__ == "__main__":
             download()
         print("Database downloaded.")
     elif args.u:
-        for file in args.u.split(","):
+        files = args.u.split(",")
+        if files == []:
+            files.append("exercices.db.zip")
+        for file in files:
             fl = file.strip()
             print(f"Uploading {fl}")
             res = upload([fl])
             print(f"{fl} uploaded." if res else f"Error uploading {fl}")
     elif action == "u":
-        files = input("Files to download (default: exercices.db.zip) ").split(',')
+        files = input("Files to download (default: exercices.db.zip): ").split(',')
         for file in files:
             fl = file.strip()
             print(f"Uploading {fl}")

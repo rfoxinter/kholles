@@ -1,4 +1,6 @@
 from typing import Iterable
+from unicodedata import normalize
+from warnings import warn
 
 from database import database_exercices
 from exercises import get_exercises
@@ -83,6 +85,8 @@ def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int,
     content = ""
     first = True
     for (_id, name, diff, exr, ans, year, req_chap, chap) in ex_list:
+        if ans == "" and showans:
+            warn(f"Exercise {_id} has no corrected version.")
         if not first:
             content += ex_sep
         content += f"\n\\exercice[{_id}-{currchap}-{curryear}][][][true]{{{name}}}\\marginnote{{{f'\\texttt{{[{str(_id).zfill(max_exr_len)}]}}' if showid else ''}}}{{\\reversemarginpar\\marginnote{{{diff_string(diff) if showdiff else ''}}}}}\\emph{{{(', '.join(map(lambda x: db.get_chapter(int(x)).lower(), (filter(lambda x: x != '' and x != currchap, req_chap.split(',')))))) if showreq else ""}}}\\par\\nobreak%"
@@ -190,7 +194,7 @@ def gen_book(db: database_exercices, flnm: str, numberwithin: str = "subsection"
     doc.add_toc()
     for y_id, yname in [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]: # À modifier, garder l'ordre
         y = False
-        for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: x[1]):
+        for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: normalize("NFD", x[1])):
             c = False
             for x in map(lambda x: x[0], db.list_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' ORDER BY difficulty")):
                 if not y:

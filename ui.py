@@ -1,6 +1,7 @@
 from os import chdir, name, system
 from os.path import split
 from re import sub
+from unicodedata import normalize
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
@@ -33,8 +34,11 @@ from export import export_ex, import_ex
 from latex import gen_book, gen_exercise_book, generate_exercise_sheet
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
+from zipdb import compress
 
-
+class normalised_str(QListWidgetItem):
+    def __lt__(self, other):
+        return normalize("NFD", self.text()) < normalize("NFD", other.text())
 
 class exercise_manager(QWidget):
     def __init__(self, app: QApplication, db: database_exercices, file_dir: str):
@@ -71,7 +75,8 @@ class exercise_manager(QWidget):
             ("Générer une feuille d\u2019exercices", self.gen_exercises),
             ("Visualiser les exercices", self.gen_book),
             ("Exporter des exercices", self.export_exercises),
-            ("Importer des exercices", self.import_exercises)
+            ("Importer des exercices", self.import_exercises),
+            ("Sauvegarder la base de données", lambda: [compress(self.db.db.serialize()), self.open_window("Sauvegarde de la base de données", "Sauvegarde effectuée.")])
         ]
         
         for text, handler in buttons:
@@ -185,21 +190,21 @@ class exercise_manager(QWidget):
         
         def populate_year_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options):  # Ensure initial sorting
+            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
                 item = QListWidgetItem(option)
-                year_list_unselected.addItem(item)
+                year_list_unselected.addItem(normalised_str(item))
 
         def move_year_to_selected(item):
             """Move item from unselected to selected list and keep sorting"""
             year_list_unselected.takeItem(year_list_unselected.row(item))
-            year_list_selected.addItem(item)
+            year_list_selected.addItem(normalised_str(item))
             year_list_selected.sortItems()  # Keep sorted
             year_list_unselected.clearSelection()
 
         def move_year_to_unselected(item):
             """Move item from selected to unselected list and keep sorting"""
             year_list_selected.takeItem(year_list_selected.row(item))
-            year_list_unselected.addItem(item)
+            year_list_unselected.addItem(normalised_str(item))
             year_list_unselected.sortItems()  # Keep sorted
             year_list_selected.clearSelection()
 
@@ -251,21 +256,21 @@ class exercise_manager(QWidget):
         
         def populate_chap_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options):  # Ensure initial sorting
+            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
                 item = QListWidgetItem(option)
-                chap_list_unselected.addItem(item)
+                chap_list_unselected.addItem(normalised_str(item))
 
         def move_chap_to_selected(item):
             """Move item from unselected to selected list and keep sorting"""
             chap_list_unselected.takeItem(chap_list_unselected.row(item))
-            chap_list_selected.addItem(item)
+            chap_list_selected.addItem(normalised_str(item))
             chap_list_selected.sortItems()  # Keep sorted
             chap_list_unselected.clearSelection()
 
         def move_chap_to_unselected(item):
             """Move item from selected to unselected list and keep sorting"""
             chap_list_selected.takeItem(chap_list_selected.row(item))
-            chap_list_unselected.addItem(item)
+            chap_list_unselected.addItem(normalised_str(item))
             chap_list_unselected.sortItems()  # Keep sorted
             chap_list_selected.clearSelection()
 
@@ -316,21 +321,21 @@ class exercise_manager(QWidget):
         
         def populate_req_chap_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options):  # Ensure initial sorting
+            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
                 item = QListWidgetItem(option)
-                req_chap_list_unselected.addItem(item)
+                req_chap_list_unselected.addItem(normalised_str(item))
 
         def move_req_chap_to_selected(item):
             """Move item from unselected to selected list and keep sorting"""
             req_chap_list_unselected.takeItem(req_chap_list_unselected.row(item))
-            req_chap_list_selected.addItem(item)
+            req_chap_list_selected.addItem(normalised_str(item))
             req_chap_list_selected.sortItems()  # Keep sorted
             req_chap_list_unselected.clearSelection()
 
         def move_req_chap_to_unselected(item):
             """Move item from selected to unselected list and keep sorting"""
             req_chap_list_selected.takeItem(req_chap_list_selected.row(item))
-            req_chap_list_unselected.addItem(item)
+            req_chap_list_unselected.addItem(normalised_str(item))
             req_chap_list_unselected.sortItems()  # Keep sorted
             req_chap_list_selected.clearSelection()
 
@@ -468,7 +473,7 @@ class exercise_manager(QWidget):
 
         # List of Years
         year_list = QListWidget()
-        year_list.addItems(sorted(self.db.list_year_names()))
+        year_list.addItems(sorted(self.db.list_year_names(), key=lambda s: normalize("NFD", s)))
         year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(year_list)
 
@@ -483,16 +488,19 @@ class exercise_manager(QWidget):
 
         # Add Year Button
         btn_add = QPushButton("Ajouter l\u2019année")
+        btn_add.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_add.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_add)
 
         # Edit Year Button
         btn_edit = QPushButton("Modifier l\u2019année")
+        btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_edit.setStyleSheet("background-color: #555500; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_edit)
 
         # Delete Year Button
         btn_delete = QPushButton("Supprimer l\u2019année")
+        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_delete.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_delete)
 
@@ -500,6 +508,7 @@ class exercise_manager(QWidget):
 
         # Close Button
         btn_close = QPushButton("Fermer")
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_close.setStyleSheet("background-color: #222; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_close.clicked.connect(dialog.close)
         layout.addWidget(btn_close)
@@ -508,7 +517,7 @@ class exercise_manager(QWidget):
 
         def refresh_year_list():
             year_list.clear()
-            year_list.addItems(sorted(self.db.list_year_names()))
+            year_list.addItems(sorted(self.db.list_year_names(), key=lambda s: normalize("NFD", s)))
 
         def add_year():
             name = input_field.text().strip()
@@ -551,7 +560,7 @@ class exercise_manager(QWidget):
 
         # List of Chaps
         chap_list = QListWidget()
-        chap_list.addItems(sorted(self.db.list_chapter_names()))
+        chap_list.addItems(sorted(self.db.list_chapter_names(), key=lambda s: normalize("NFD", s)))
         chap_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(chap_list)
 
@@ -566,16 +575,19 @@ class exercise_manager(QWidget):
 
         # Add Chap Button
         btn_add = QPushButton("Ajouter le chapitre")
+        btn_add.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_add.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_add)
 
         # Edit Chap Button
         btn_edit = QPushButton("Modifier le chapitre")
+        btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_edit.setStyleSheet("background-color: #555500; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_edit)
 
         # Delete Chap Button
         btn_delete = QPushButton("Supprimer le chapitre")
+        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_delete.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_layout.addWidget(btn_delete)
 
@@ -583,6 +595,7 @@ class exercise_manager(QWidget):
 
         # Close Button
         btn_close = QPushButton("Fermer")
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_close.setStyleSheet("background-color: #222; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_close.clicked.connect(dialog.close)
         layout.addWidget(btn_close)
@@ -591,7 +604,7 @@ class exercise_manager(QWidget):
 
         def refresh_chap_list():
             chap_list.clear()
-            chap_list.addItems(sorted(self.db.list_chapter_names()))
+            chap_list.addItems(sorted(self.db.list_chapter_names(), key=lambda s: normalize("NFD", s)))
 
         def add_chap():
             name = input_field.text().strip()
@@ -688,7 +701,7 @@ class exercise_manager(QWidget):
 
         # Example slot wiring (add real logic here)
         def preview_sheet():
-            generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[1].text().split(","))), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[2].text().split(","))), len(str(self.db.max_exercises())), dest_path["path"], True)
+            generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), get_exercises(self.db, spinboxes[1].text()), get_exercises(self.db, spinboxes[2].text()), len(str(self.db.max_exercises())), dest_path["path"], True)
             btn_preview.setText("Compilation en cours")
             try:
                 folder, file = split(dest_path['path'])
@@ -936,20 +949,20 @@ class exercise_manager(QWidget):
 
         dialog.exec()
 
-    def open_window(self):
+    def open_window(self, title: str = "Title", content: str = "Content"):
         # Dummy window
         dialog = QDialog(self)
-        dialog.setWindowTitle('title')
+        dialog.setWindowTitle(title)
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
         
         layout = QVBoxLayout(dialog)
-        label = QLabel('title')
+        label = QLabel(content)
         label.setStyleSheet("color: white; font-size: 16px;")
         layout.addWidget(label)
         
-        btn_close = QPushButton("Close")
+        btn_close = QPushButton("Fermer")
         btn_close.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_close.clicked.connect(dialog.close)
         layout.addWidget(btn_close)

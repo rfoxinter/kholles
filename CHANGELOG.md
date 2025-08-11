@@ -1,4 +1,12 @@
 # Version history
+## 202508112030
+- Fix error code when uploading a file other than <span style="font-family: monospace;">exercices.db.zip</span> to pCloud
+- Fix cursor not showing as pointer on some buttons
+- Fix sorting diacritics
+- Fix exercise sheet generation for students 2 and 3
+- Fix the Python HTTP server
+- Add warnings when generating exercise sheets with answers when an exercise has no corrected version
+- Add save database option in main menu
 ## 202508091330
 - Fix duplicate exercises <span style="font-family: monospace;">id</span>s in different years in LaTeX
 - Make the database download use a static code

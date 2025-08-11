@@ -1,5 +1,6 @@
 from base64 import b64decode, b64encode
 from typing import TYPE_CHECKING
+from unicodedata import normalize
 from zipfile import ZIP_LZMA, ZipFile
 
 from PyQt6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QRadioButton, QVBoxLayout
@@ -128,7 +129,7 @@ def import_ex(manager: 'exercise_manager', db: database_exercices, flnm: str) ->
             try:
                 years.append(db.get_year_id(year_str))
             except IndexError:
-                val, res = resolve_unknown_dialog(manager, year_str, sorted(db.list_chapter_names()), "année", "l\u2019", True)
+                val, res = resolve_unknown_dialog(manager, year_str, sorted(db.list_chapter_names(), key=lambda s: normalize("NFD", s)), "année", "l\u2019", True)
                 if res == 1:
                     db.add_year(val)
                 if res != 0:
@@ -140,7 +141,7 @@ def import_ex(manager: 'exercise_manager', db: database_exercices, flnm: str) ->
             try:
                 req_chaps.append(db.get_chapter_id(req_chap_str))
             except IndexError:
-                val, res = resolve_unknown_dialog(manager, req_chap_str, sorted(db.list_chapter_names()), "année", "l\u2019", True)
+                val, res = resolve_unknown_dialog(manager, req_chap_str, sorted(db.list_chapter_names(), key=lambda s: normalize("NFD", s)), "année", "l\u2019", True)
                 if res == 1:
                     db.add_chapter(val)
                 if res != 0:
@@ -152,7 +153,7 @@ def import_ex(manager: 'exercise_manager', db: database_exercices, flnm: str) ->
             try:
                 chaps.append(db.get_chapter_id(chap_str))
             except IndexError:
-                val, res = resolve_unknown_dialog(manager, chap_str, sorted(db.list_chapter_names()), "année", "l\u2019", True)
+                val, res = resolve_unknown_dialog(manager, chap_str, sorted(db.list_chapter_names(), key=lambda s: normalize("NFD", s)), "année", "l\u2019", True)
                 if res == 1:
                     db.add_chapter(val)
                 if res != 0:

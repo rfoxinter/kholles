@@ -29,14 +29,15 @@ class ViewerDialog(QDialog):
 
         ip = gethostbyname(gethostname())
         sleep(2)
-        pdf_url = f"http://{ip}/web/viewer.html?file=http://{ip}/{file}"
+        pdf_url = f"http://{ip}:8000/web/viewer.html?file=http://{ip}:8000/{file}"
 
         self.webView.setUrl(QUrl(pdf_url))
 
         self.exec()
 
         try:
-            urlopen(f"http://{ip}/EXIT_SERVER")
+            urlopen(f"http://{ip}:8000/EXIT_SERVER")
         except:
             pass
+
         self.t.join()
