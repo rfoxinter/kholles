@@ -37,7 +37,7 @@ em.show()
 exit_code = app.exec()
 if not debug:
     print("Writing database.")
-    compress(db.db.serialize())
+    print(f"Compression rate of {int(100 * compress(db.db.serialize()) + 0.5)}%.")
 print(f"Exiting with code {exit_code}.")
 if not debug:
     sleep(5)

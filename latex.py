@@ -22,6 +22,8 @@ class latex_document():
         self.content += gen_exercises(self.db, [self.db.get_exercise(ex)], len(str(self.db.max_exercises())), showdiff, showid, showans, "\n\\vspace{5pt}\n%", showfullinfo, showreq, currchap, curryear)
     def jump_page(self) -> None:
         self.content += "\n\\null\\newpage%"
+    def add_ex_table(self, title: str = "Répartition des exercices", show_toc: bool = True, fill_page: bool = True, jump_page: bool = False) -> None:
+        self.content += generate_exercises_table(self.db, title, show_toc, fill_page, jump_page)
     def gen_doc(self) -> None:
         content = self.content + gen_end()
         file = open(self.flnm, "w", encoding="utf-8")
@@ -87,6 +89,8 @@ def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int,
     for (_id, name, diff, exr, ans, year, req_chap, chap) in ex_list:
         if ans == "" and showans:
             warn(f"Exercise {_id} has no corrected version.")
+        if "À venir\\dots" in ans and showans:
+            warn(f"Exercise {_id} has an unfinished corrected version.")
         if not first:
             content += ex_sep
         content += f"\n\\exercice[{_id}-{currchap}-{curryear}][][][true]{{{name}}}\\marginnote{{{f'\\texttt{{[{str(_id).zfill(max_exr_len)}]}}' if showid else ''}}}{{\\reversemarginpar\\marginnote{{{diff_string(diff) if showdiff else ''}}}}}\\emph{{{(', '.join(map(lambda x: db.get_chapter(int(x)).lower(), (filter(lambda x: x != '' and x != currchap, req_chap.split(',')))))) if showreq else ""}}}\\par\\nobreak%"
@@ -192,6 +196,7 @@ def generate_exercise_sheet(ex_list_1: Iterable[tuple[int, str, int, str, str, s
 def gen_book(db: database_exercices, flnm: str, numberwithin: str = "subsection", showans: bool = False, showdiff: bool = True) -> None:
     doc = latex_document(db, flnm, numberwithin)
     doc.add_toc()
+    doc.add_ex_table(fill_page=False, jump_page=True)
     for y_id, yname in [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]: # À modifier, garder l'ordre
         y = False
         for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: normalize("NFD", x[1])):
@@ -246,3 +251,35 @@ def gen_exercise_book(db: database_exercices, flnm: str, ids: str, showans: bool
     doc = latex_document(db, flnm, extra_header=extra_hd)
     doc.content += gen_exercises(db, get_exercises(doc.db, ids), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff)
     doc.gen_doc()
+
+def generate_exercises_table(db: database_exercices, title: str = "Répartition des exercices", show_toc: bool = True, fill_page: bool = True, jump_page: bool = False) -> str:
+    content = ""
+    if jump_page:
+        content += "\\null\\newpage\n"
+    if fill_page:
+        content += "\\vfill\n"
+    if show_toc:
+        content += f"\\section*{{{title}}}\\addcontentsline{{toc}}{{section}}{{\\protect\\numberline{{}}{title}}}\n"
+    years = [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]
+    years = list(filter(lambda year: db.count_exercises(f" year LIKE '%,{year[0]},%'") > 0, years))
+    content += f"""\\begin{{longtblr}}[presep=0pt,postsep=0pt]{{colspec={{|X[2,c,m]||{'|'.join(['X[1,c,m]' for _ in years])}||X[1,c,m]|}},vline{{1-Z}}={{1}}{{-}}{{belowpos=1}},vline{{2}}={{2}}{{-}}{{belowpos=1}},vline{{{len(years) + 2}}}={{2}}{{-}}{{belowpos=1}},stretch=1.03125,rowsep=0pt,colsep=2.5pt}}
+    \\hline
+    & {' & '.join([f"\\textbf{{{year[1]}}}" for year in years])} & \\textbf{{Total}} \\\\
+    \\hline\\hline
+    """
+    for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: normalize("NFD", x[1])):
+        if db.count_exercises(f" chapters LIKE '%,{c_id},%'") > 0:
+            content += f"\\textbf{{{cname}}} & "
+            for y_id, _ in years: # À modifier, garder l'ordre
+                nb_ex = (db.count_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' AND difficulty < 0"), db.count_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' AND difficulty >= 0"))
+                content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " & "
+            nb_ex = (db.count_exercises(f" chapters LIKE '%,{c_id},%' AND difficulty < 0"), db.count_exercises(f" chapters LIKE '%,{c_id},%' AND difficulty >= 0"))
+            content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " \\\\\n\\hline\n"
+    content += "\\hline\n\\textbf{Total} & "
+    for y_id, _ in years: # À modifier, garder l'ordre
+        nb_ex = (db.count_exercises(f" year LIKE '%,{y_id},%' AND difficulty < 0"), db.count_exercises(f" year LIKE '%,{y_id},%' AND difficulty >= 0"))
+        content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " & "
+    nb_ex = (db.count_exercises(f" difficulty < 0"), db.count_exercises(f" difficulty >= 0"))
+    content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " \\\\\n\\hline\n"
+    content += "\\end{longtblr}"
+    return content

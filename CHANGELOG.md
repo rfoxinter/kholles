@@ -1,4 +1,12 @@
 # Version history
+## 202208221500
+- Fix exercise range selection in export to PDF
+- Disable <samp>Escape</samp> key on <samp>QDialog</samp>
+- Add warning for exercises with uncomplete corrected version
+- Replace “1” by an empty value when selecting an exercise to edit
+- Prevent additional LaTeX compilation when the first contains an error
+- Add table with the distribution of exercises in export to PDF
+- Display database compression on save popup and after exiting
 ## 202508112030
 - Fix error code when uploading a file other than <samp>exercices.db.zip</samp> to pCloud
 - Fix cursor not showing as pointer on some buttons

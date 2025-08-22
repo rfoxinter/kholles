@@ -167,6 +167,12 @@ class database_exercices():
             exrs.append(row)
         return exrs
 
+    def count_exercises(self, param: str = "") -> int:
+        """List all exercises in the database"""
+        exrs = []
+        self.cursor.execute("SELECT COUNT(*) FROM exercises" + ((" WHERE " + param) if param != "" else ""))
+        return self.cursor.fetchall()[0][0]
+
     def get_exercise(self, _id: int = -1) -> tuple[int, str, int, str, str, str, str, str]:
         """Return the data of the exercise _id with the data (id, name, difficulty, exercise, answer, year, req_chap, chapters)"""
         self.cursor.execute("SELECT * FROM exercises WHERE id = (?)", (_id,))

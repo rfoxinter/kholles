@@ -1,7 +1,10 @@
+from math import nan
 from os import chdir, name, system
-from os.path import split
-from re import sub
+from os.path import split, splitext
+from re import match, sub
+from time import sleep
 from unicodedata import normalize
+from warnings import warn
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
@@ -34,6 +37,7 @@ from export import export_ex, import_ex
 from latex import gen_book, gen_exercise_book, generate_exercise_sheet
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
+from tools import disable_escape
 from zipdb import compress
 
 class normalised_str(QListWidgetItem):
@@ -76,7 +80,7 @@ class exercise_manager(QWidget):
             ("Visualiser les exercices", self.gen_book),
             ("Exporter des exercices", self.export_exercises),
             ("Importer des exercices", self.import_exercises),
-            ("Sauvegarder la base de données", lambda: [compress(self.db.db.serialize()), self.open_window("Sauvegarde de la base de données", "Sauvegarde effectuée.")])
+            ("Sauvegarder la base de données", lambda: self.open_window("Sauvegarde de la base de données", ["Sauvegarde effectuée.", f"Base de données compressée à {int(100 * compress(self.db.db.serialize()) + 0.5)}%."]))
         ]
         
         for text, handler in buttons:
@@ -96,6 +100,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("font-family: 'Ubuntu'; font-size: 12px;  background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
         
         layout = QVBoxLayout(dialog)
         
@@ -424,6 +429,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -434,6 +440,7 @@ class exercise_manager(QWidget):
         exercise_selector.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         exercise_selector.setMinimum(1)
         exercise_selector.setMaximum(self.db.max_exercises())
+        exercise_selector.clear()
         exercise_selector.setStyleSheet("background-color: #333; color: white; font-size: 14px; padding: 5px;")
         layout.addWidget(exercise_selector)
 
@@ -468,6 +475,7 @@ class exercise_manager(QWidget):
         dialog.setWindowTitle("Gestion des années")
         dialog.setStyleSheet("background-color: #121212; color: white;")
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -555,6 +563,7 @@ class exercise_manager(QWidget):
         dialog.setWindowTitle("Gestion des chapitres")
         dialog.setStyleSheet("background-color: #121212; color: white;")
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -643,6 +652,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -706,11 +716,15 @@ class exercise_manager(QWidget):
             try:
                 folder, file = split(dest_path['path'])
                 chdir(folder)
-                system(f"pdflatex {file}")
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
                 chdir(self.file_dir)
-                system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" _file.pdf")
-                btn_preview.setText("Prévisualiser la feuille")
-                ViewerDialog(self, "_file.pdf")
+                sleep(1)
+                if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                    system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" _file.pdf")
+                    btn_preview.setText("Prévisualiser la feuille")
+                    ViewerDialog(self, "_file.pdf")
+                else:
+                    warn("The LaTeX compilation terminated with an error.")
             except:
                 btn_preview.setText("Une erreur est survenue")
                 
@@ -723,9 +737,13 @@ class exercise_manager(QWidget):
             try:
                 folder, file = split(dest_path['path'])
                 chdir(folder)
-                system(f"pdflatex {file}")
-                system(f"pdflatex {file}")
-                system(f"pdflatex {file}")
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                sleep(1)
+                if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                    system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                    system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                else:
+                    warn("The LaTeX compilation terminated with an error.")
                 chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
@@ -742,6 +760,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
         
@@ -820,9 +839,13 @@ class exercise_manager(QWidget):
             try:
                 folder, file = split(dest_path['path'])
                 chdir(folder)
-                system(f"pdflatex {file}")
-                system(f"pdflatex {file}")
-                system(f"pdflatex {file}")
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                sleep(1)
+                if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                    system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                    system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                else:
+                    warn("The LaTeX compilation terminated with an error.")
                 chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
@@ -838,6 +861,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -901,6 +925,7 @@ class exercise_manager(QWidget):
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -949,18 +974,20 @@ class exercise_manager(QWidget):
 
         dialog.exec()
 
-    def open_window(self, title: str = "Title", content: str = "Content"):
+    def open_window(self, title: str = "Title", lcontent: list[str] = ["Content"]):
         # Dummy window
         dialog = QDialog(self)
         dialog.setWindowTitle(title)
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
         dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
         
         layout = QVBoxLayout(dialog)
-        label = QLabel(content)
-        label.setStyleSheet("color: white; font-size: 16px;")
-        layout.addWidget(label)
+        for content in lcontent:
+            label = QLabel(content)
+            label.setStyleSheet("color: white; font-size: 16px;")
+            layout.addWidget(label)
         
         btn_close = QPushButton("Fermer")
         btn_close.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
