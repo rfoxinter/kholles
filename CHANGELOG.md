@@ -1,5 +1,13 @@
 # Version history
-## 202208221500
+## 202509131400
+- Fix preview of exercise sheet
+- Fix opened files filename display
+- Fix <samp>chdir</samp> not executing when an error is raised
+- Add id, title ans required chapters options in export to PDF
+- Add option to import exercise sheet exercises from a file and generate automatically the necessary files
+- Clean extra files after LaTeX compilation
+- Create backup of local database before downloading
+## 202508221500
 - Fix exercise range selection in export to PDF
 - Disable <samp>Escape</samp> key on <samp>QDialog</samp>
 - Add warning for exercises with uncomplete corrected version

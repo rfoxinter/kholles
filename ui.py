@@ -1,6 +1,6 @@
 from math import nan
 from os import chdir, name, system
-from os.path import split, splitext
+from os.path import basename, split, splitext
 from re import match, sub
 from time import sleep
 from unicodedata import normalize
@@ -34,10 +34,10 @@ from superqt.utils import CodeSyntaxHighlight
 from database import database_exercices
 from exercises import get_exercises
 from export import export_ex, import_ex
-from latex import gen_book, gen_exercise_book, generate_exercise_sheet
+from latex import gen_book, gen_exercise_book, gen_recap, generate_exercise_sheet
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
-from tools import disable_escape
+from tools import clean_LaTeX, disable_escape
 from zipdb import compress
 
 class normalised_str(QListWidgetItem):
@@ -45,8 +45,9 @@ class normalised_str(QListWidgetItem):
         return normalize("NFD", self.text()) < normalize("NFD", other.text())
 
 class exercise_manager(QWidget):
-    def __init__(self, app: QApplication, db: database_exercices, file_dir: str):
+    def __init__(self, app: QApplication, db: database_exercices, file_dir: str, debug: bool):
         super().__init__()
+        self.debug = debug
         self.db = db
         self.app = app
         self.file_dir = file_dir
@@ -648,6 +649,38 @@ class exercise_manager(QWidget):
 
     def gen_exercises(self):
         dialog = QDialog(self)
+        dialog.setWindowTitle("Modifier un exercice")
+        dialog.setStyleSheet("background-color: #121212;")
+        dialog.setWindowIcon(QIcon("favicon.ico"))
+        dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
+
+        layout = QVBoxLayout(dialog)
+
+        # Edit Button (Left)
+        btn_none = QPushButton("Générer une feille d\u2019exercices")
+        btn_none.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_none.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_none.clicked.connect(lambda: [dialog.close(), self.gen_exercises_none()])
+        layout.addWidget(btn_none)
+
+        btn_with = QPushButton("Générer une feille depuis un fichier")
+        btn_with.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_with.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_with.clicked.connect(lambda: [dialog.close(), self.gen_exercises_with()])
+        layout.addWidget(btn_with)
+
+        # Cancel Button (Right)
+        btn_cancel = QPushButton("Annuler")
+        btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cancel.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_cancel.clicked.connect(dialog.close)
+        layout.addWidget(btn_cancel)
+
+        dialog.exec()
+
+    def gen_exercises_none(self):
+        dialog = QDialog(self)
         dialog.setWindowTitle("Générer une feuille d’exercices")
         dialog.setStyleSheet("background-color: #121212;")
         dialog.setWindowIcon(QIcon("favicon.ico"))
@@ -713,13 +746,14 @@ class exercise_manager(QWidget):
         def preview_sheet():
             generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), get_exercises(self.db, spinboxes[1].text()), get_exercises(self.db, spinboxes[2].text()), len(str(self.db.max_exercises())), dest_path["path"], True)
             btn_preview.setText("Compilation en cours")
+            self.app.processEvents()
             try:
                 folder, file = split(dest_path['path'])
                 chdir(folder)
                 system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
-                chdir(self.file_dir)
                 sleep(1)
                 if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                    chdir(self.file_dir)
                     system(f"copy \"{sub("/", "\\\\", dest_path['path']).replace(".tex", ".pdf")}\" _file.pdf")
                     btn_preview.setText("Prévisualiser la feuille")
                     ViewerDialog(self, "_file.pdf")
@@ -727,10 +761,10 @@ class exercise_manager(QWidget):
                     warn("The LaTeX compilation terminated with an error.")
             except:
                 btn_preview.setText("Une erreur est survenue")
+            chdir(self.file_dir)
                 
 
         def compile_sheet():
-            # generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[1].text().split(","))), map(lambda x: self.db.get_exercise(x), filter(lambda x: x != "", spinboxes[2].text().split(","))), len(str(self.db.max_exercises())), dest_path["path"])
             generate_exercise_sheet(get_exercises(self.db, spinboxes[0].text()), get_exercises(self.db, spinboxes[1].text()), get_exercises(self.db, spinboxes[2].text()), len(str(self.db.max_exercises())), dest_path["path"])
             btn_compile.setText("Compilation en cours")
             self.app.processEvents()
@@ -742,17 +776,106 @@ class exercise_manager(QWidget):
                 if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
                     system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
                     system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                    if not self.debug:
+                        clean_LaTeX(file)
                 else:
                     warn("The LaTeX compilation terminated with an error.")
-                chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
                 btn_compile.setText("Une erreur est survenue")
+            chdir(self.file_dir)
 
         btn_preview.clicked.connect(preview_sheet)
         btn_compile.clicked.connect(compile_sheet)
 
         dialog.exec()
+
+    def gen_exercises_with(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Compilation des feuilles d\u2019exercices")
+        dialog.setStyleSheet("background-color: #121212;")
+        dialog.setWindowIcon(QIcon("favicon.ico"))
+        dialog.setModal(True)
+        dialog.keyPressEvent = lambda a0: disable_escape(a0, dialog)
+        
+        layout = QVBoxLayout(dialog)
+        label = QLabel("\t\t")
+        label.setStyleSheet("color: white; font-size: 16px;")
+        layout.addWidget(label)
+        
+        btn_close = QPushButton("Fermer")
+        btn_close.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_close.clicked.connect(dialog.close)
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        layout.addWidget(btn_close)
+        
+        dialog.open()
+        
+        flnm, _ = QFileDialog.getOpenFileName(dialog, "Sélectionner un fichier", "", "text files (*.txt)")
+        if not flnm:
+            flnm, _ = QFileDialog.getOpenFileName(dialog, "Sélectionner un fichier", "", "text files (*.txt)")
+        if not flnm:
+            dialog.close()
+            return None
+        filecontent = open(flnm, "r", encoding="utf-8").readline()
+        sheet, extra = filecontent.split(";;;")
+        students = sheet.split(";;")
+        sheet_flnm = splitext(flnm)[0] + ".tex"
+        all_flnm = splitext(flnm)[0] + "_all.tex"
+        rapport_flnm = splitext(flnm)[0] + "_rapport.tex"
+
+        generate_exercise_sheet(get_exercises(self.db, students[0]), get_exercises(self.db, students[1]), get_exercises(self.db, students[2]), len(str(self.db.max_exercises())), sheet_flnm)
+        label.setText(f"Compilation de {basename(sheet_flnm)} en cours")
+        self.app.processEvents()
+        try:
+            folder, file = split(sheet_flnm)
+            chdir(folder)
+            system(f"pdflatex -interaction=nonstopmode -file-line-error {sheet_flnm}")
+            sleep(1)
+            if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {sheet_flnm}")
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {sheet_flnm}")
+                if not self.debug:
+                    clean_LaTeX(sheet_flnm)
+            else:
+                warn("The LaTeX compilation terminated with an error.")
+            label.setText("Compilation terminée")
+        except:
+            label.setText("Une erreur est survenue")
+        chdir(self.file_dir)
+        
+        sleep(1)
+
+        gen_exercise_book(self.db, all_flnm, filecontent, True, True, True, True, False)
+        label.setText(f"Compilation de {basename(all_flnm)} en cours")
+        self.app.processEvents()
+        try:
+            folder, file = split(all_flnm)
+            chdir(folder)
+            system(f"pdflatex -interaction=nonstopmode -file-line-error {all_flnm}")
+            sleep(1)
+            if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {all_flnm}")
+                system(f"pdflatex -interaction=nonstopmode -file-line-error {all_flnm}")
+                if not self.debug:
+                    clean_LaTeX(all_flnm)
+            else:
+                warn("The LaTeX compilation terminated with an error.")
+            label.setText("Compilation terminée")
+        except:
+            label.setText("Une erreur est survenue")
+        chdir(self.file_dir)
+        
+        sleep(1)
+
+        gen_recap(self.db, rapport_flnm, (students, extra), False, False, False, False, False)
+
+        label.setText(f"Processus terminé\nFermeture de la fenêtre")
+        self.app.processEvents()
+
+        sleep(1)
+
+        dialog.close()
 
     def gen_book(self):
         dialog = QDialog(self)
@@ -794,6 +917,21 @@ class exercise_manager(QWidget):
         d_checkbox.setStyleSheet("color: white; font-size: 14px;")
         layout.addWidget(d_checkbox)
         d_checkbox.setChecked(True)
+
+        id_checkbox = QCheckBox("Afficher l\u2019identifiant")
+        id_checkbox.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(id_checkbox)
+        id_checkbox.setChecked(True)
+
+        t_checkbox = QCheckBox("Afficher les titres")
+        t_checkbox.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(t_checkbox)
+        t_checkbox.setChecked(True)
+
+        r_checkbox = QCheckBox("Afficher les chapitres requis")
+        r_checkbox.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(r_checkbox)
+        r_checkbox.setChecked(True)
 
         # Destination selection
         dest_button = QPushButton("Destination")
@@ -844,12 +982,14 @@ class exercise_manager(QWidget):
                 if not match(r".tex:[0-9]+:", open(splitext(file)[0] + ".log", "r", encoding="utf-8").read()):
                     system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
                     system(f"pdflatex -interaction=nonstopmode -file-line-error {file}")
+                    if not self.debug:
+                        clean_LaTeX(file)
                 else:
                     warn("The LaTeX compilation terminated with an error.")
-                chdir(self.file_dir)
                 btn_compile.setText("Compilation terminée")
             except:
                 btn_compile.setText("Une erreur est survenue")
+            chdir(self.file_dir)
 
         btn_compile.clicked.connect(compile_book)
 
@@ -941,7 +1081,7 @@ class exercise_manager(QWidget):
             flnm, _ = QFileDialog.getOpenFileName(dialog, "Sélectionner un fichier", "", "zip files (*.zip)")
             if flnm:
                 file_path["path"] = flnm
-                file_button.setText(f"Fichier : {flnm.split('/')[-1]}")
+                file_button.setText(f"Fichier : {basename(flnm)}")
 
         file_button.clicked.connect(choose_file)
 
@@ -992,6 +1132,7 @@ class exercise_manager(QWidget):
         btn_close = QPushButton("Fermer")
         btn_close.setStyleSheet("background-color: #a30000; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_close.clicked.connect(dialog.close)
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         layout.addWidget(btn_close)
         
         dialog.exec()

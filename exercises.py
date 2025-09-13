@@ -28,8 +28,6 @@ def get_exercises(db: database_exercices, exlst: str) -> list[tuple[int, str, in
                             exercise = sub(r"\\endhard", r"\\fi", exercise)
                         else:
                             warn(f"The tag {elem} does correspond to any matched pattern.")
-                    print(exset)
-                    exit()
                     if exset.__len__() > 0:
                         reps = 0
                         for ques, match in enumerate(finditer(r"\\item[^\[a-zA-Z]", exercise), start = 1):

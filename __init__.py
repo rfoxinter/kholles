@@ -4,6 +4,7 @@ from os.path import dirname
 import sys
 from time import sleep
 from traceback import print_exception
+from types import TracebackType
 if name == "nt":
     from ctypes import windll
 
@@ -14,8 +15,10 @@ from ui import exercise_manager
 from zipdb import compress
 
 debug = (getattr(sys, 'gettrace', None) == None) or ("debugpy" in sys.modules)
+if type(debug) != bool:
+    debug = False
 
-def handle_exception(exc_type, exc_value, exc_traceback):
+def handle_exception(exc_type: type, exc_value: BaseException, exc_traceback: TracebackType) -> None:
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
@@ -32,7 +35,7 @@ if name == "nt":
     windll.shell32.SetCurrentProcessExplicitAppUserModelID('ecerciceskholle')
     windll.shcore.SetProcessDpiAwareness(True)
 db = database_exercices()
-em = exercise_manager(app, db, dirname(__file__))
+em = exercise_manager(app, db, dirname(__file__), debug)
 em.show()
 exit_code = app.exec()
 if not debug:

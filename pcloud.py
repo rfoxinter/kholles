@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
 from json import load
 from mimetypes import guess_type
-from os.path import basename
+from os import rename
+from os.path import basename, exists
 from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -26,7 +27,12 @@ def download() -> bool:
     except OSError:
         print("Database not downloaded.")
         return False
-    # try:
+    try:
+        if exists("exercices.db.zip"):
+            rename("exercices.db.zip", "exercices_bkp.db.zip")
+    except OSError:
+        print("Cannot write to exercices.db.zip.")
+        return False
     data = call_api("showpublink", {"code": file_code})
     folder_info = data.get("metadata")
     assert type(folder_info) == dict
@@ -54,8 +60,6 @@ def download() -> bool:
             out.write(chunk)
 
     return True
-    # except:
-    #     return False
 
 def _upload(file_path: str) -> bool:
     remote_path = "/Kholles"
