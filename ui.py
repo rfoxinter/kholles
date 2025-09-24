@@ -1,4 +1,3 @@
-from math import nan
 from os import chdir, name, system
 from os.path import basename, split, splitext
 from re import match, sub
@@ -658,13 +657,13 @@ class exercise_manager(QWidget):
         layout = QVBoxLayout(dialog)
 
         # Edit Button (Left)
-        btn_none = QPushButton("Générer une feille d\u2019exercices")
+        btn_none = QPushButton("Générer une feuille d\u2019exercices")
         btn_none.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_none.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_none.clicked.connect(lambda: [dialog.close(), self.gen_exercises_none()])
         layout.addWidget(btn_none)
 
-        btn_with = QPushButton("Générer une feille depuis un fichier")
+        btn_with = QPushButton("Générer une feuille depuis un fichier")
         btn_with.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_with.setStyleSheet("background-color: #003366; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
         btn_with.clicked.connect(lambda: [dialog.close(), self.gen_exercises_with()])
@@ -969,7 +968,7 @@ class exercise_manager(QWidget):
         def compile_book():
             exs = input_field.text()
             if exs == "*":
-                gen_book(self.db, dest_path["path"], compteur_input.text(), checkbox.isChecked(), d_checkbox.isChecked())
+                gen_book(self.db, dest_path["path"], compteur_input.text(), checkbox.isChecked(), d_checkbox.isChecked(), id_checkbox.isChecked(), t_checkbox.isChecked(), r_checkbox.isChecked())
             else:
                 gen_exercise_book(self.db, dest_path["path"], exs,  checkbox.isChecked(), d_checkbox.isChecked())
             btn_compile.setText("Compilation en cours")

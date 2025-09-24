@@ -248,37 +248,10 @@ def gen_exercise_book(db: database_exercices, flnm: str, ids: str, showans: bool
 
 def gen_recap(db: database_exercices, flnm: str, ids: tuple[list[str], str], showans: bool = False, showdiff: bool = False, showid: bool = True, showtitle: bool = True, showreq: bool = False, numberexs: bool = True) -> None:
     extra_hd = """
-        \\usepackage{xparse}
-        \\makeatletter
-        \\ExplSyntaxOn
-        \\NewDocumentCommand{\\hideit}{}
-        {
-        \\gaweiliex_hide:
-        }
-        \\NewDocumentCommand{\\hideitems}{}
-        {
-        \\bool_set_true:N \\l_gaweiliex_hide_bool
-        }
-        \\NewDocumentCommand{\\showitems}{}
-        {
-        \\bool_set_false:N \\l_gaweiliex_hide_bool
-        }
-        \\bool_new:N \\l_gaweiliex_hide_bool
-        \\cs_new_protected:Nn \\gaweiliex_hide:
-        {
-        \\bool_if:NT \\l_gaweiliex_hide_bool
-        {
-            \\stepcounter{\\@enumctr}%
-            \\item[]\\vspace{-\\baselineskip}%
-            \\peek_regex_replace_once:nn
-            % search \\item followed by anything until finding
-            % \\item or \\hideit or \\end{<current environment>}
-            { \\c{item}.*?(\\c{item}|\\c{hideit}|\\c{end}\\{\\u{@currenvir}\\}) }
-            % replace by the matching item
-            { \\1 }
-        }
-        }
-        \\ExplSyntaxOff
+        \\def\\beginhard{}
+        \\def\\endhard{}
+        \\toggleanalyselimits
+        \\togglebigoplimits
         \\makeatother
         \\hideitems
         \\title{Colle \\no{} ? -- Classe}
@@ -292,7 +265,7 @@ def gen_recap(db: database_exercices, flnm: str, ids: tuple[list[str], str], sho
     for student in range(3):
         doc.add_sec(f"\\stepcounter{{section}}Élève \\textsc{{{student + 1}}} (??/20)", False)
         doc.content += gen_exercises(db, get_exercises(doc.db, ids[0][student]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs)
-        doc.content += "\\null\n\\dots\n\n"
+        doc.content += "\\null\n\n\n\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\n\\dots\n\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\\%\n"
     doc.add_sec(f"\\stepcounter{{section}}Extra", False)
     doc.content += gen_exercises(db, get_exercises(doc.db, ids[1]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs)
     doc.gen_doc()
