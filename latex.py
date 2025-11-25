@@ -250,7 +250,8 @@ def gen_recap(db: database_exercices, flnm: str, ids: tuple[list[str], str], sho
     extra_hd = """
         \\def\\beginhard{}
         \\def\\endhard{}
-        \\toggleanalyselimits
+        \\toggleanalysedisplay
+        \\togglebigopdisplay
         \\togglebigoplimits
         \\usepackage{xparse}
         \\makeatletter
@@ -293,12 +294,12 @@ def gen_recap(db: database_exercices, flnm: str, ids: tuple[list[str], str], sho
     """
     doc = latex_document(db, flnm, extra_header=extra_hd, numberwithin="section")
     doc.content += "\\maketitle\n"
-    for student in range(3):
+    for i, student in enumerate(range(3)):
         doc.add_sec(f"\\stepcounter{{section}}Élève \\textsc{{{student + 1}}} (??/20)", False)
-        doc.content += gen_exercises(db, get_exercises(doc.db, ids[0][student]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs)
-        doc.content += "\\null\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\\dots\n\n%%%%%%%%%%%%%%%%%%%%%%%%%\n"
+        doc.content += gen_exercises(db, get_exercises(doc.db, ids[0][student]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs, curryear=str(i+1))
+        doc.content += "\n\n\\null\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\\dots\n\n%%%%%%%%%%%%%%%%%%%%%%%%%\n"
     doc.add_sec(f"\\stepcounter{{section}}Extra", False)
-    doc.content += gen_exercises(db, get_exercises(doc.db, ids[1]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs)
+    doc.content += gen_exercises(db, get_exercises(doc.db, ids[1]), len(str(doc.db.max_exercises())), showans=showans, showdiff=showdiff, showid=showid, showtitle=showtitle, showreq=showreq, numberexs=numberexs, curryear="4")
     doc.gen_doc()
 
 def generate_exercises_table(db: database_exercices, title: str = "Répartition des exercices", show_toc: bool = True, fill_page: bool = True, jump_page: bool = False) -> str:
