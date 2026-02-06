@@ -5,7 +5,7 @@ from time import sleep
 from unicodedata import normalize
 from warnings import warn
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, qInstallMessageHandler
 from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtWidgets import (
@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
+    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
@@ -42,6 +43,19 @@ from zipdb import compress
 class normalised_str(QListWidgetItem):
     def __lt__(self, other):
         return normalize("NFD", self.text()) < normalize("NFD", other.text())
+
+class CompactItemDelegate(QStyledItemDelegate):
+    def sizeHint(self, option, index):
+        size = super().sizeHint(option, index)
+        size.setHeight(22)
+        return size
+
+def qt_message_handler(msg_type, context, message):
+    if "QFont::setPointSize" in message:
+        return  # swallow it
+    print(message)
+
+qInstallMessageHandler(qt_message_handler)
 
 class exercise_manager(QWidget):
     def __init__(self, app: QApplication, db: database_exercices, file_dir: str, debug: bool):
@@ -227,6 +241,7 @@ class exercise_manager(QWidget):
 
         # Left List (Unselected options)
         year_list_unselected = QListWidget()
+        year_list_unselected.setItemDelegate(CompactItemDelegate())
         year_list_unselected.setFixedHeight(50)
         year_list_unselected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         year_list_unselected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -237,6 +252,7 @@ class exercise_manager(QWidget):
 
         # Right List (Selected options)
         year_list_selected = QListWidget()
+        year_list_selected.setItemDelegate(CompactItemDelegate())
         year_list_selected.setFixedHeight(50)
         year_list_selected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         year_list_selected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -292,6 +308,7 @@ class exercise_manager(QWidget):
 
         # Left List (Unselected options)
         chap_list_unselected = QListWidget()
+        chap_list_unselected.setItemDelegate(CompactItemDelegate())
         chap_list_unselected.setFixedHeight(75)
         chap_list_unselected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         chap_list_unselected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -302,6 +319,7 @@ class exercise_manager(QWidget):
 
         # Right List (Selected options)
         chap_list_selected = QListWidget()
+        chap_list_selected.setItemDelegate(CompactItemDelegate())
         chap_list_selected.setFixedHeight(75)
         chap_list_selected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         chap_list_selected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -357,6 +375,7 @@ class exercise_manager(QWidget):
 
         # Left List (Unselected options)
         req_chap_list_unselected = QListWidget()
+        req_chap_list_unselected.setItemDelegate(CompactItemDelegate())
         req_chap_list_unselected.setFixedHeight(75)
         req_chap_list_unselected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         req_chap_list_unselected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -367,6 +386,7 @@ class exercise_manager(QWidget):
 
         # Right List (Selected options)
         req_chap_list_selected = QListWidget()
+        req_chap_list_selected.setItemDelegate(CompactItemDelegate())
         req_chap_list_selected.setFixedHeight(75)
         req_chap_list_selected.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         req_chap_list_selected.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)  # Smooth scrolling
@@ -481,6 +501,7 @@ class exercise_manager(QWidget):
 
         # List of Years
         year_list = QListWidget()
+        year_list.setItemDelegate(CompactItemDelegate())
         year_list.addItems(sorted(self.db.list_year_names(), key=lambda s: normalize("NFD", s)))
         year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(year_list)
@@ -569,6 +590,7 @@ class exercise_manager(QWidget):
 
         # List of Chaps
         chap_list = QListWidget()
+        chap_list.setItemDelegate(CompactItemDelegate())
         chap_list.addItems(sorted(self.db.list_chapter_names(), key=lambda s: normalize("NFD", s)))
         chap_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(chap_list)
