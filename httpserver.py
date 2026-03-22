@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from mimetypes import guess_type
 from os import chdir
@@ -26,7 +25,6 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         if path == "/EXIT_SERVER":
             global http_server
             global server
-            # _exit(0)
             self.send_response(200)
             self.end_headers()
             http_server.shutdown()

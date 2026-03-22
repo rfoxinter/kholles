@@ -1,9 +1,12 @@
 from typing import Iterable
-from unicodedata import normalize
+from unicodedata import category, normalize
 from warnings import warn
 
 from database import database_exercices
 from exercises import get_exercises
+
+def strip_accents(s) -> str:
+    return ''.join(c for c in normalize('NFD', s) if category(c) != 'Mn')
 
 class latex_document():
     def __init__(self, db: database_exercices, filename: str, numberwithin: str | None = "", extra_header: str = "") -> None:
@@ -192,7 +195,7 @@ def gen_book(db: database_exercices, flnm: str, numberwithin: str | None = "subs
     doc.add_ex_table(fill_page=False, jump_page=True)
     for y_id, yname in [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]: # À modifier, garder l'ordre
         y = False
-        for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: normalize("NFD", x[1])):
+        for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: strip_accents(x[1])):
             c = False
             for x in map(lambda x: x[0], db.list_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' ORDER BY difficulty")):
                 if not y:
@@ -286,7 +289,7 @@ def gen_recap(db: database_exercices, flnm: str, ids: tuple[list[str], str], sho
         \\ExplSyntaxOff
         \\makeatother
         \\hideitems
-        \\title{Colle \\no{} ? -- Classe}
+        \\title{Colle \\no{}? -- Classe}
         \\author{}
         \\date{DD/MM/YYYY}
         \\renewcommand{\\theexercice}{\\arabic{exercice}}
@@ -317,7 +320,7 @@ def generate_exercises_table(db: database_exercices, title: str = "Répartition 
     & {' & '.join([f"\\textbf{{{year[1]}}}" for year in years])} & \\textbf{{Total}} \\\\
     \\hline\\hline
     """
-    for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: normalize("NFD", x[1])):
+    for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: strip_accents(x[1])):
         if db.count_exercises(f" chapters LIKE '%,{c_id},%'") > 0:
             content += f"\\textbf{{{cname}}} & "
             for y_id, _ in years: # À modifier, garder l'ordre

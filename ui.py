@@ -1,8 +1,9 @@
-from os import chdir, name, system
+from os import chdir, name
 from os.path import basename, split, splitext
 from re import match, sub
+from subprocess import run
 from time import sleep
-from unicodedata import normalize
+from unicodedata import category, normalize
 from warnings import warn
 
 from PyQt6.QtCore import Qt, qInstallMessageHandler
@@ -29,20 +30,27 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtWidgets import QHBoxLayout
+from pygments.lexers import _lexer_cache
 from superqt.utils import CodeSyntaxHighlight
 
 from database import database_exercices
 from exercises import get_exercises
 from export import export_ex, import_ex
 from latex import gen_book, gen_exercise_book, gen_recap, generate_exercise_sheet
+from latex_lexer import LaTeXLexer
 from monokaipp import MonokaiPlusPlusStyle
 from pdf_viewer import ViewerDialog
 from tools import clean_LaTeX, disable_escape
 from zipdb import compress
 
+system = lambda command: run(command, shell=True, check=True)
+
+def strip_accents(s) -> str:
+    return ''.join(c for c in normalize('NFD', s) if category(c) != 'Mn')
+
 class normalised_str(QListWidgetItem):
     def __lt__(self, other):
-        return normalize("NFD", self.text()) < normalize("NFD", other.text())
+        return strip_accents(self.text()) < strip_accents(other.text())
 
 class CompactItemDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
@@ -56,6 +64,8 @@ def qt_message_handler(msg_type, context, message):
     print(message)
 
 qInstallMessageHandler(qt_message_handler)
+
+_lexer_cache["custom"] = LaTeXLexer
 
 class exercise_manager(QWidget):
     def __init__(self, app: QApplication, db: database_exercices, file_dir: str, debug: bool):
@@ -192,7 +202,7 @@ class exercise_manager(QWidget):
         exercise_input.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         exercise_input.setPlaceholderText('Exercice')
         exercise_input.setStyleSheet("font-family: 'Ubuntu Mono'; font-size: 14px;  background-color: #121212;")
-        self.e_highlighter = CodeSyntaxHighlight(exercise_input.document(), "latex", MonokaiPlusPlusStyle)
+        self.e_highlighter = CodeSyntaxHighlight(exercise_input.document(), "custom", MonokaiPlusPlusStyle)
         layout.addWidget(exercise_input)
         
         # Answer
@@ -202,14 +212,14 @@ class exercise_manager(QWidget):
         answer_input.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         answer_input.setPlaceholderText('Réponse')
         answer_input.setStyleSheet("font-family: 'Ubuntu Mono'; font-size: 14px;  background-color: #121212;")
-        self.a_highlighter = CodeSyntaxHighlight(answer_input.document(), "latex", MonokaiPlusPlusStyle)
+        self.a_highlighter = CodeSyntaxHighlight(answer_input.document(), "custom", MonokaiPlusPlusStyle)
         layout.addWidget(answer_input)
 
         
         
         def populate_year_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
+            for option in sorted(options, key=strip_accents):  # Ensure initial sorting
                 item = QListWidgetItem(option)
                 year_list_unselected.addItem(normalised_str(item))
 
@@ -277,7 +287,7 @@ class exercise_manager(QWidget):
         
         def populate_chap_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
+            for option in sorted(options, key=strip_accents):  # Ensure initial sorting
                 item = QListWidgetItem(option)
                 chap_list_unselected.addItem(normalised_str(item))
 
@@ -344,7 +354,7 @@ class exercise_manager(QWidget):
         
         def populate_req_chap_options(options):
             """Populate the left list with sorted options"""
-            for option in sorted(options, key=lambda s: normalize("NFD", s)):  # Ensure initial sorting
+            for option in sorted(options, key=strip_accents):  # Ensure initial sorting
                 item = QListWidgetItem(option)
                 req_chap_list_unselected.addItem(normalised_str(item))
 
@@ -502,7 +512,7 @@ class exercise_manager(QWidget):
         # List of Years
         year_list = QListWidget()
         year_list.setItemDelegate(CompactItemDelegate())
-        year_list.addItems(sorted(self.db.list_year_names(), key=lambda s: normalize("NFD", s)))
+        year_list.addItems(sorted(self.db.list_year_names(), key=strip_accents))
         year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(year_list)
 
@@ -546,7 +556,7 @@ class exercise_manager(QWidget):
 
         def refresh_year_list():
             year_list.clear()
-            year_list.addItems(sorted(self.db.list_year_names(), key=lambda s: normalize("NFD", s)))
+            year_list.addItems(sorted(self.db.list_year_names(), key=strip_accents))
 
         def add_year():
             name = input_field.text().strip()
@@ -591,7 +601,7 @@ class exercise_manager(QWidget):
         # List of Chaps
         chap_list = QListWidget()
         chap_list.setItemDelegate(CompactItemDelegate())
-        chap_list.addItems(sorted(self.db.list_chapter_names(), key=lambda s: normalize("NFD", s)))
+        chap_list.addItems(sorted(self.db.list_chapter_names(), key=strip_accents))
         chap_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(chap_list)
 
@@ -635,7 +645,7 @@ class exercise_manager(QWidget):
 
         def refresh_chap_list():
             chap_list.clear()
-            chap_list.addItems(sorted(self.db.list_chapter_names(), key=lambda s: normalize("NFD", s)))
+            chap_list.addItems(sorted(self.db.list_chapter_names(), key=strip_accents))
 
         def add_chap():
             name = input_field.text().strip()

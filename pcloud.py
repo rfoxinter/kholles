@@ -23,7 +23,7 @@ def call_api(endpoint, params) -> dict:
 
 def download() -> bool:
     try:
-        file_code = open("db_code.txt", "r", encoding="utf-8").readline().strip()
+        file_code = open("db_token.txt", "r", encoding="utf-8").readline().strip()
     except OSError:
         print("Database not downloaded.")
         return False
@@ -62,7 +62,7 @@ def download() -> bool:
     return True
 
 def _upload(file_path: str) -> bool:
-    remote_path = "/Kholles"
+    remote_path = "/" + open("db_folder.txt", "r", encoding="utf-8").readline().strip()
 
     with open("token.txt", "r") as f:
         token = f.readline().strip()
@@ -108,7 +108,7 @@ def _upload(file_path: str) -> bool:
     if upload_res and file_path == "exercices.db.zip":
         params = {
             "auth": token,
-            "path": "/Kholles/" + file_path
+            "path": "/" + open("db_folder.txt", "r", encoding="utf-8").readline().strip() + "/" + file_path
         }
         try:
             data = call_api("getfilepublink", params)
@@ -119,7 +119,7 @@ def _upload(file_path: str) -> bool:
     return upload_res
 
 def _delete(file_path: str) -> None:
-    file_path = "/Kholles/" + file_path
+    file_path = "/" + open("db_folder.txt", "r", encoding="utf-8").readline().strip() + "/" + file_path
 
     with open("token.txt", "r") as f:
         token = f.read().strip()
