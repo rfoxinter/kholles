@@ -1,5 +1,7 @@
-from sqlite3 import IntegrityError, connect
+from sqlite3 import Connection, Cursor, IntegrityError, connect
 from warnings import warn
+
+dbversion = 2
 
 from zipdb import uncompress as dbuncompress
 
@@ -8,15 +10,16 @@ class DatabaseWarning(Warning):
 
 class database_exercices():
     def __init__(self) -> None:
-        # self.db = connect("exercices.db")
         self.db = connect(":memory:")
-        uncompress, exists = dbuncompress()
+        uncompress, exists, version = dbuncompress()
         if exists:
             self.db.deserialize(uncompress)
         self.bkp = connect(":memory:")
-        uncompress, exists = dbuncompress()
+        self.bkpversion = -1
+        uncompress, exists, bkpversion = dbuncompress()
         if exists:
             self.bkp.deserialize(uncompress)
+            self.bkpversion = bkpversion
         self.cursor = self.db.cursor()
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS exercises (
@@ -42,6 +45,9 @@ class database_exercices():
                 name TEXT NOT NULL UNIQUE
             )
         """)
+
+        for i in range(max(1, version), dbversion):
+            eval(f"migrate_{i}")(self.db, self.cursor)
 
     def add_chapter(self, chap_name: str) -> None:
         try:
@@ -83,7 +89,7 @@ class database_exercices():
         warn(f"No chapter with id {_id}", DatabaseWarning)
         return ""
 
-    def list_chapters(self) -> list[str]:
+    def list_chapters(self) -> list[tuple[int, str]]:
         self.cursor.execute("SELECT * FROM chapters")
         return self.cursor.fetchall()
 
@@ -94,16 +100,27 @@ class database_exercices():
             chaps.append(row[1])
         return chaps
 
-    def add_year(self, year_name: str) -> None:
+    def add_year(self, year_name: str, rank: int) -> None:
         try:
             self.cursor.execute("""
-                INSERT INTO years (name) VALUES (?)
-            """, (year_name,))
+                INSERT INTO years (name, rank) VALUES (?, ?)
+            """, (year_name, rank))
             self.db.commit()
         except IntegrityError:
             warn(f"Year {year_name} already exists", DatabaseWarning)
 
-    def update_year(self, old_name: str, new_name: str) -> None:
+    def update_year(self, old_name: str, new_name: str, rank: int) -> None:
+        try:
+            self.cursor.execute("""
+                UPDATE years
+                SET name = ?, rank = ?
+                WHERE name = ?
+            """, (new_name, rank, old_name))
+            self.db.commit()
+        except IntegrityError:
+            warn(f"Year {new_name} already exists", DatabaseWarning)
+
+    def update_year_name(self, old_name: str, new_name: str) -> None:
         try:
             self.cursor.execute("""
                 UPDATE years
@@ -127,14 +144,28 @@ class database_exercices():
         self.cursor.execute(f"SELECT id FROM years WHERE name = (?)", (name,))
         return self.cursor.fetchall()[0][0]
 
-    def get_year(self, _id: int) -> str:
+    def get_year_name(self, _id: int) -> str:
         self.cursor.execute("SELECT name FROM years WHERE id = (?)", (_id,))
         for row in self.cursor.fetchall():
             return row[0]
         warn(f"No year with id {_id}", DatabaseWarning)
         return ""
 
-    def list_years(self) -> list[str]:
+    def get_year_rank(self, _id: int) -> int:
+        self.cursor.execute("SELECT rank FROM years WHERE id = (?)", (_id,))
+        for row in self.cursor.fetchall():
+            return row[0]
+        warn(f"No year with id {_id}", DatabaseWarning)
+        return -1
+
+    def get_year(self, _id: int) -> tuple[str, int]:
+        self.cursor.execute("SELECT (name, rank) FROM years WHERE id = (?)", (_id,))
+        for row in self.cursor.fetchall():
+            return row[0]
+        warn(f"No year with id {_id}", DatabaseWarning)
+        return "", -1
+
+    def list_years(self) -> list[tuple[int, str, int]]:
         self.cursor.execute("SELECT * FROM years")
         return self.cursor.fetchall()
 
@@ -184,3 +215,14 @@ class database_exercices():
     def max_exercises(self) -> int:
         self.cursor.execute("SELECT seq FROM sqlite_sequence WHERE name = 'exercises'")
         return self.cursor.fetchall()[0][0]
+
+def migrate_1(db: Connection, cursor: Cursor) -> None:
+    cursor.execute("""
+        ALTER TABLE years
+        ADD COLUMN rank INTEGER DEFAULT 0 NOT NULL
+    """)
+    cursor.execute("""
+        UPDATE years
+        SET rank = id - 1
+    """)
+    db.commit()

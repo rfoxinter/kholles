@@ -91,7 +91,7 @@ def gen_exercises(db: database_exercices, ex_list: Iterable[tuple[int, str, int,
         content += f"\n\\exercice{("" if numberexs else "*")}[{_id}-{currchap}-{curryear}][][][true]{{{(name if showtitle else "")}}}\\marginnote{{{f'\\texttt{{[{str(_id).zfill(max_exr_len)}]}}' if showid else ''}}}{{\\reversemarginpar\\marginnote{{{diff_string(diff) if showdiff else ''}}}}}\\emph{{{(', '.join(map(lambda x: db.get_chapter(int(x)).lower(), (filter(lambda x: x != '' and x != currchap, req_chap.split(',')))))) if showreq else ""}}}\\par\\nobreak%"
         req_chap_str = ', '.join(map(lambda x: db.get_chapter(int(x)), (filter(lambda x, chap=currchap: x != '' and x != chap, req_chap.split(',')))))
         if showfullinfo:
-            content += f"\n\\begingroup\\slshape Année(s): {', '.join(map(lambda x: db.get_year(int(x)), (filter(lambda x: x != '', year.split(',')))))}\\\\Chapitre(s): {', '.join(map(lambda x: db.get_chapter(int(x)), (filter(lambda x: x != '', chap.split(',')))))} {('\\\\Chapitre(s) nécessaire(s): ' + req_chap_str) if req_chap_str else ''}\\endgroup%\n"
+            content += f"\n\\begingroup\\slshape Année(s): {', '.join(map(lambda x: db.get_year_name(int(x)), (filter(lambda x: x != '', year.split(',')))))}\\\\Chapitre(s): {', '.join(map(lambda x: db.get_chapter(int(x)), (filter(lambda x: x != '', chap.split(',')))))} {('\\\\Chapitre(s) nécessaire(s): ' + req_chap_str) if req_chap_str else ''}\\endgroup%\n"
         content += f"\n{exr}%"
         if showans:
             content += f"""%
@@ -313,7 +313,7 @@ def generate_exercises_table(db: database_exercices, title: str = "Répartition 
         content += "\\vfill\n"
     if show_toc:
         content += f"\\section*{{{title}}}\\addcontentsline{{toc}}{{section}}{{\\protect\\numberline{{}}{title}}}\n"
-    years = [("", "Non répertorié"),("2","MPS/2I"),("1","MP(I)")]
+    years = [(-1, "Non répertorié", -1)] + sorted(db.list_years(), key=lambda x: x[2])
     years = list(filter(lambda year: db.count_exercises(f" year LIKE '%,{year[0]},%'") > 0, years))
     content += f"""\\begin{{longtblr}}[presep=0pt,postsep=0pt]{{colspec={{|X[2,c,m]||{'|'.join(['X[1,c,m]' for _ in years])}||X[1,c,m]|}},vline{{1-Z}}={{1}}{{-}}{{belowpos=1}},vline{{2}}={{2}}{{-}}{{belowpos=1}},vline{{{len(years) + 2}}}={{2}}{{-}}{{belowpos=1}},stretch=1.03125,rowsep=0pt,colsep=2.5pt}}
     \\hline
@@ -323,13 +323,13 @@ def generate_exercises_table(db: database_exercices, title: str = "Répartition 
     for c_id, cname in [("", "Non répertorié")] + sorted(db.list_chapters(), key=lambda x: strip_accents(x[1])):
         if db.count_exercises(f" chapters LIKE '%,{c_id},%'") > 0:
             content += f"\\textbf{{{cname}}} & "
-            for y_id, _ in years: # À modifier, garder l'ordre
+            for y_id, _, _ in years: # À modifier, garder l'ordre
                 nb_ex = (db.count_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' AND difficulty < 0"), db.count_exercises(f" year LIKE '%,{y_id},%' AND chapters LIKE '%,{c_id},%' AND difficulty >= 0"))
                 content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " & "
             nb_ex = (db.count_exercises(f" chapters LIKE '%,{c_id},%' AND difficulty < 0"), db.count_exercises(f" chapters LIKE '%,{c_id},%' AND difficulty >= 0"))
             content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " \\\\\n\\hline\n"
     content += "\\hline\n\\textbf{Total} & "
-    for y_id, _ in years: # À modifier, garder l'ordre
+    for y_id, _, _ in years: # À modifier, garder l'ordre
         nb_ex = (db.count_exercises(f" year LIKE '%,{y_id},%' AND difficulty < 0"), db.count_exercises(f" year LIKE '%,{y_id},%' AND difficulty >= 0"))
         content += "{\\color{blue!62.5!black!50}" + str(nb_ex[0]) + "}{\\color{black!50}${}+{}$" + str(nb_ex[1]) + "${}={}$}" + str(sum(nb_ex)) + " & "
     nb_ex = (db.count_exercises(f" difficulty < 0"), db.count_exercises(f" difficulty >= 0"))

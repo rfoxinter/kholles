@@ -1,4 +1,9 @@
 # Version history
+## 202604051515
+- Add versioning to the database
+- Add years sorting in version 2 of the database
+- Update README documentation
+- Fix license link in README
 ## 202603222130
 - Use <samp>subprocess.run</samp> instead of <samp>os.system</samp>
 - Add custom LaTeX lexer

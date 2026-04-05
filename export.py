@@ -102,7 +102,7 @@ def export_ex(db: database_exercices, flnm: str, exs: list[int]) -> None:
         years = list(map(int,filter(lambda x: x != "", year.split(","))))
         ex_data += str(len(years)) + "\n"
         for y in years:
-            ex_data += b64encode(db.get_year(y).encode("utf-8")).decode("utf-8") + "\n"
+            ex_data += b64encode(db.get_year_name(y).encode("utf-8")).decode("utf-8") + "\n"
         req_chaps = list(map(int,filter(lambda x: x != "", req_chap.split(","))))
         ex_data += str(len(req_chaps)) + "\n"
         for rc in req_chaps:
@@ -131,7 +131,7 @@ def import_ex(manager: 'exercise_manager', db: database_exercices, flnm: str) ->
             except IndexError:
                 val, res = resolve_unknown_dialog(manager, year_str, sorted(db.list_chapter_names(), key=lambda s: normalize("NFD", s)), "année", "l\u2019", True)
                 if res == 1:
-                    db.add_year(val)
+                    db.add_year(val, len(db.list_years()))
                 if res != 0:
                     years.append(db.get_year_id(val))
         nb_req_chaps = int(exercise.readline().strip())

@@ -26,7 +26,7 @@ def handle_exception(exc_type: type, exc_value: BaseException, exc_traceback: Tr
         print_exception(exc_type, exc_value, exc_traceback)
     else:
         print("An error occurred. Backup files have been created with the previous and current state of the database.", flush=True)
-        compress(db.bkp.serialize(), f"exercices_{datetime.today().strftime('%Y%m%d%H%M%S')}.old.db.zip")
+        compress(db.bkp.serialize(), f"exercices_{datetime.today().strftime('%Y%m%d%H%M%S')}.old.db.zip", db.bkpversion)
         compress(db.db.serialize(), f"exercices_{datetime.today().strftime('%Y%m%d%H%M%S')}.bkp.db.zip")
 sys.excepthook = handle_exception
 

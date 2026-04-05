@@ -512,7 +512,9 @@ class exercise_manager(QWidget):
         # List of Years
         year_list = QListWidget()
         year_list.setItemDelegate(CompactItemDelegate())
-        year_list.addItems(sorted(self.db.list_year_names(), key=strip_accents))
+        # year_list.addItems(sorted(self.db.list_years(), key=strip_accents))
+        years = sorted(self.db.list_years(), key=lambda x: x[2])  # sort by rank
+        year_list.addItems([name for _id, name, rank in years])
         year_list.setStyleSheet("background-color: #333; color: white; font-size: 14px;")
         layout.addWidget(year_list)
 
@@ -545,6 +547,19 @@ class exercise_manager(QWidget):
 
         layout.addLayout(btn_layout)
 
+        # Move buttons
+        move_layout = QHBoxLayout()
+        btn_up = QPushButton("↑ Monter")
+        btn_up.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_up.setStyleSheet("background-color: #444; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        btn_down = QPushButton("↓ Descendre")
+        btn_down.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_down.setStyleSheet("background-color: #444; color: white; font-size: 14px; padding: 10px; border-radius: 10px;")
+        move_layout.addWidget(btn_up)
+        move_layout.addWidget(btn_down)
+        
+        layout.addLayout(move_layout)
+
         # Close Button
         btn_close = QPushButton("Fermer")
         btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -554,15 +569,19 @@ class exercise_manager(QWidget):
 
         # --- Logic Functions ---
 
-        def refresh_year_list():
+        def refresh_year_list(select_row: int = -1):
             year_list.clear()
-            year_list.addItems(sorted(self.db.list_year_names(), key=strip_accents))
+            years = sorted(self.db.list_years(), key=lambda x: x[2])  # sort by rank
+            year_list.addItems([name for _id, name, rank in years])
+            if select_row != -1:
+                year_list.setCurrentRow(select_row)
 
         def add_year():
             name = input_field.text().strip()
+            nb_years = len(self.db.list_years())
             if name:
-                self.db.add_year(name)
-                refresh_year_list()
+                self.db.add_year(name, nb_years)
+                refresh_year_list(nb_years)
                 input_field.clear()
 
         def edit_year():
@@ -571,8 +590,8 @@ class exercise_manager(QWidget):
                 old_name = selected.text()
                 new_name = input_field.text().strip()
                 if new_name:
-                    self.db.update_year(old_name, new_name)
-                    refresh_year_list()
+                    self.db.update_year_name(old_name, new_name)
+                    refresh_year_list(year_list.currentRow())
                     input_field.clear()
 
         def delete_year():
@@ -582,10 +601,32 @@ class exercise_manager(QWidget):
                 self.db.delete_year(year_name)
                 refresh_year_list()
 
+        def move_up():
+            index = year_list.currentRow()
+            if index > 0:
+                years = sorted(self.db.list_years(), key=lambda x: x[2])  # sort by rank
+                current = years[index]
+                above = years[index - 1]
+                self.db.update_year(current[1], current[1], above[2])
+                self.db.update_year(above[1], above[1], current[2])
+                refresh_year_list(index - 1)
+
+        def move_down():
+            index = year_list.currentRow()
+            years = sorted(self.db.list_years(), key=lambda x: x[2])  # sort by rank
+            if index < len(years) - 1:
+                current = years[index]
+                below = years[index + 1]
+                self.db.update_year(current[1], current[1], below[2])
+                self.db.update_year(below[1], below[1], current[2])
+                refresh_year_list(index + 1)
+
         # --- Connect Buttons ---
         btn_add.clicked.connect(add_year)
         btn_edit.clicked.connect(edit_year)
         btn_delete.clicked.connect(delete_year)
+        btn_up.clicked.connect(move_up)
+        btn_down.clicked.connect(move_down)
 
         dialog.exec()
 
